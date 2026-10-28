@@ -1,0 +1,1182 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23ffcd01%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%229%22 fill=%22none%22 stroke=%22%23003d86%22 stroke-width=%223%22/%3E%3C/svg%3E"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Wegwijs prototype</title>
+<meta name="theme-color" content="#003d86">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: desktop shows the app inside a phone with a short pitch beside it; on a phone the app fills the screen.
+   Single, deliberate light look in ANWB colours (blue #003d86, yellow #ffcd01) on white. */
+:root{
+  --blue:#003d86;--blue-700:#002f6c;--blue-900:#001f4d;--blue-50:#eef4fb;--blue-100:#dce8f6;
+  --sky:#59b4ff;--sky-text:#8ccaff;--link:#0a6ccf;
+  --yellow:#ffcd01;--yellow-600:#f2bd00;--yellow-50:#fff8d9;
+  --orange:#f08a00;--orange-text:#b05f00;--orange-50:#fff1de;
+  --green:#1d8a4e;--green-50:#e7f5ec;--red:#c8102e;--red-50:#fdecee;
+  --ink:#0b2347;--muted:#5a6b84;--line:#e3e7ee;--grey:#f2f2f2;--grey-2:#f7f7f8;--road:#2e3a4b;
+  --shadow-sm:0 1px 2px rgb(0 31 77 / 6%),0 1px 1px rgb(0 31 77 / 4%);
+  --shadow:0 2px 6px rgb(0 31 77 / 6%),0 12px 28px -8px rgb(0 31 77 / 14%);
+  --shadow-lg:0 6px 16px rgb(0 31 77 / 8%),0 28px 60px -12px rgb(0 31 77 / 24%);
+  --ease:cubic-bezier(.2,.7,.2,1);--spring:cubic-bezier(.34,1.56,.64,1);
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Fira Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:#dfe7f1;display:flex;align-items:center;justify-content:center;gap:56px;min-height:100vh;padding:24px;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--link);text-decoration:none}
+h1,h2,h3{margin:0;color:var(--blue);font-weight:600;letter-spacing:-.01em;line-height:1.12}
+p{margin:0}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px;border-radius:4px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:16px;height:16px}svg.i.lg{width:26px;height:26px}
+
+/* ---------- device + side panel ---------- */
+.device{width:390px;height:844px;border-radius:46px;background:#fff;box-shadow:0 0 0 11px #0b2347,0 0 0 13px #33476a,var(--shadow-lg);overflow:hidden;position:relative;flex:none}
+.side{max-width:320px;display:flex;flex-direction:column;gap:18px}
+.side img{width:96px}
+.side h1{font-size:40px;line-height:1.02;letter-spacing:-.025em}
+.side h1 em{font-style:normal;position:relative;z-index:0;white-space:nowrap}
+.side h1 em::after{content:"";position:absolute;left:-2%;right:-2%;bottom:.06em;height:.22em;background:var(--yellow);z-index:-1;border-radius:2px}
+.side p{font-size:17px;line-height:1.55;color:var(--ink)}
+.side ul{margin:0;padding-left:18px;color:var(--muted);line-height:1.7;font-size:15px}
+.side .small{font-size:13px;color:var(--muted)}
+@media (max-width:820px){.side{display:none}body{padding:0;background:#fff}}
+@media (max-width:520px){.device{width:100%;height:100dvh;border-radius:0;box-shadow:none}body{display:block}}
+
+#app{position:absolute;inset:0;display:flex;flex-direction:column;background:#fff;overflow:hidden}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.main::-webkit-scrollbar{display:none}
+.pad{padding:20px}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center}
+.gap4{gap:4px}.gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap14{gap:14px}.gap16{gap:16px}.gap20{gap:20px}
+.muted{color:var(--muted)}
+.grow{flex:1;min-width:0}
+
+/* ---------- header ---------- */
+.hdr{height:64px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:#fff;position:relative;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;color:var(--blue)}
+.brand img{width:62px;height:auto;display:block}
+.brand span{font-weight:600;font-size:17px;padding-left:12px;border-left:2px solid var(--line);line-height:1.2}
+.hdr-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{width:44px;height:44px;border-radius:50%;background:var(--grey);color:var(--blue);display:grid;place-items:center;border:0;position:relative;flex:none;transition:background .2s,transform .15s var(--ease)}
+.icon-btn:hover{background:#e8ebf0}
+.icon-btn:active{transform:scale(.94)}
+.badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:600;display:grid;place-items:center;box-shadow:0 0 0 2px #fff}
+.hdr-sub{height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid var(--line);background:#fff;z-index:5}
+.hdr-sub .ttl{font-weight:600;font-size:17px;color:var(--blue)}
+.wheel-spin{animation:wheelspin 1.2s var(--ease)}
+@keyframes wheelspin{from{transform:rotate(-360deg)}to{transform:rotate(0)}}
+
+/* ---------- tab bar ---------- */
+.tabs{height:84px;flex:none;background:#fff;border-top:1px solid var(--line);display:flex;padding:0 6px 8px;position:relative;z-index:5}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:11px;font-weight:500;padding-top:12px;text-decoration:none;transition:color .2s}
+.tab:hover{color:var(--blue)}
+.tab.on{color:var(--blue);font-weight:600;box-shadow:inset 0 3px 0 var(--yellow)}
+.tab .fab{width:56px;height:56px;margin-top:-28px;border-radius:50%;background:var(--yellow);color:var(--blue);display:grid;place-items:center;box-shadow:0 6px 16px rgb(0 31 77 / 8%),0 16px 30px -10px rgb(0 31 77 / 30%);transition:transform .2s var(--spring)}
+.tab:hover .fab{transform:translateY(-2px) rotate(90deg)}
+.tab .fab svg{width:26px;height:26px;stroke-width:2.4}
+
+/* ---------- typography + blocks ---------- */
+.h-hero{font-size:32px;font-weight:600;line-height:1.05;letter-spacing:-.025em;color:var(--blue);position:relative;z-index:0}
+.mark{position:relative;white-space:nowrap}
+.mark::after{content:"";position:absolute;left:-2%;right:-2%;bottom:.06em;height:.22em;background:var(--yellow);z-index:-1;border-radius:2px}
+.h-page{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.lead{font-size:15px;color:var(--muted);line-height:1.45;margin-top:6px}
+.sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.sec-h h2{font-size:20px;line-height:1.15}
+.sec-h .sub{font-size:13px;color:var(--muted)}
+.kicker{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.arrow-link{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--blue);font-size:14px}
+.arrow-link svg{transition:transform .25s var(--ease)}
+.arrow-link:hover svg{transform:translateX(4px)}
+
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--blue-50);color:var(--blue);white-space:nowrap}
+.tag.yellow{background:var(--yellow);color:var(--blue)}
+.tag.green{background:var(--green-50);color:var(--green)}
+.tag.orange{background:var(--orange-50);color:var(--orange-text)}
+.tag.red{background:var(--red-50);color:var(--red)}
+.tag.white{background:rgb(255 255 255 / 94%);color:var(--blue)}
+.tag.grey{background:var(--grey);color:var(--muted)}
+
+.plate{display:inline-flex;align-items:stretch;border:1.5px solid var(--ink);border-radius:4px;overflow:hidden;font-weight:700;font-size:11px;letter-spacing:.06em;background:var(--yellow);color:var(--ink);line-height:1;flex:none}
+.plate .nl{background:var(--blue);color:#fff;font-size:7px;padding:3px 3px 2px;display:flex;align-items:flex-end}
+.plate .nr{padding:4px 6px}
+
+.av{width:var(--s,36px);height:var(--s,36px);border-radius:50%;display:inline-grid;place-items:center;flex:none;font-size:calc(var(--s,36px) * .36);font-weight:600;color:#fff;background:var(--c,var(--blue));box-shadow:0 0 0 2px #fff;user-select:none;text-decoration:none}
+.av.anon{background:#9aa6b8}
+.av-stack{display:flex}
+.av-stack .av{margin-left:-8px}
+.av-stack .av:first-child{margin-left:0}
+
+.btn{--h:50px;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:var(--h);padding:0 20px;border-radius:6px;border:2px solid transparent;font-weight:600;font-size:15px;line-height:1;white-space:nowrap;text-decoration:none;cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .15s var(--ease)}
+.btn:active{transform:scale(.97)}
+.btn.sm{--h:40px;padding:0 14px;font-size:14px}
+.btn.block{width:100%}
+.btn.primary{background:var(--blue);color:#fff}
+.btn.primary:hover{background:var(--blue-700)}
+.btn.yellow{background:var(--yellow);color:var(--blue)}
+.btn.yellow:hover{background:var(--yellow-600)}
+.btn.outline{background:#fff;color:var(--blue);border-color:var(--blue-100)}
+.btn.outline:hover{border-color:var(--blue)}
+.btn.ghost{background:transparent;color:var(--blue)}
+.btn.ghost:hover{background:var(--grey)}
+.btn.good{background:var(--green-50);color:var(--green);border-color:var(--green)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+.chip{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:var(--blue);font-weight:500;font-size:14px;white-space:nowrap;flex:none;transition:background .2s,border-color .2s,color .2s,transform .15s}
+.chip:hover{border-color:var(--blue)}
+.chip:active{transform:scale(.96)}
+.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;margin:0 -20px;padding:0 20px 2px;scrollbar-width:none}
+.chips.scroll::-webkit-scrollbar{display:none}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field>.lbl{font-size:15px;font-weight:600;color:var(--blue);display:flex;justify-content:space-between;gap:8px}
+.field>.lbl small{font-weight:400;color:var(--muted);font-size:13px}
+.input,.textarea{width:100%;height:52px;padding:0 16px;border:1.5px solid var(--line);border-radius:6px;background:#fff;font-size:16px;transition:border-color .2s,box-shadow .2s}
+.textarea{height:auto;min-height:96px;padding:13px 16px;resize:none;line-height:1.45}
+.input:hover,.textarea:hover{border-color:#c4ccd8}
+.input:focus,.textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 4px var(--blue-100)}
+.search{position:relative}
+.search svg{position:absolute;left:16px;top:50%;translate:0 -50%;color:var(--blue);pointer-events:none}
+.search .input{padding-left:48px;background:var(--grey);border-color:transparent}
+.search .input:focus{background:#fff}
+
+.switch{display:flex;align-items:center;gap:14px;cursor:pointer;user-select:none}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch .trk{width:48px;height:28px;border-radius:999px;background:#cfd6e0;position:relative;transition:background .25s;flex:none}
+.switch .trk::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:var(--shadow-sm);transition:transform .3s var(--spring)}
+.switch input:checked+.trk{background:var(--blue)}
+.switch input:checked+.trk::after{transform:translateX(20px)}
+.switch input:focus-visible+.trk{outline:3px solid var(--sky);outline-offset:2px}
+.switch strong{display:block;color:var(--blue);font-weight:600;font-size:15px}
+.switch span.d{color:var(--muted);font-size:13px}
+
+.seg{display:flex;background:var(--grey);border-radius:8px;padding:4px;gap:4px}
+.seg button{flex:1;height:40px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--blue);box-shadow:var(--shadow-sm)}
+
+/* ---------- route sign ---------- */
+.sign{display:block;text-decoration:none;color:#fff}
+.sign .board{display:block;background:var(--blue);border-radius:8px;padding:4px;box-shadow:var(--shadow-lg);transition:transform .35s var(--ease)}
+.sign:hover .board{transform:translateY(-2px)}
+.sign .inner{display:flex;align-items:center;gap:12px;border:2px solid #fff;border-radius:5px;padding:12px 14px;min-height:56px}
+.sign .txt{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}
+.sign .k{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--sky-text)}
+.sign .t{font-size:20px;font-weight:600;line-height:1.2;color:#fff;overflow-wrap:anywhere}
+.sign.sm .t{font-size:17px}
+.sign .poles{display:flex;justify-content:space-between;padding:0 64px}
+.sign .poles i{width:8px;height:24px;background:linear-gradient(90deg,#9aa6b8,#d4dae3,#9aa6b8);display:block}
+.sign.sm .poles i{height:14px;width:7px}
+.sign.disc .board{background:#1d6b45}
+
+.badge-card{display:flex;flex-direction:column;gap:8px;background:var(--yellow);color:var(--blue);padding:14px 16px;transform:rotate(-1.2deg);box-shadow:var(--shadow);text-decoration:none;position:relative;transition:transform .35s var(--ease),box-shadow .35s}
+a.badge-card:hover{transform:rotate(-1.2deg) translateY(-3px);box-shadow:var(--shadow-lg)}
+.badge-card .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+.badge-card .b{font-size:15px;font-weight:500;line-height:1.35}
+
+/* ---------- road (vluchtstrook) ---------- */
+.road{position:relative;background:var(--road);border-radius:10px;overflow:hidden;padding:30px 0 34px}
+.road::before{content:"";position:absolute;left:0;right:0;top:14px;height:3px;background:#e9edf2}
+.road::after{content:"";position:absolute;left:0;right:0;bottom:16px;height:4px;background:repeating-linear-gradient(90deg,#e9edf2 0 26px,transparent 26px 46px);animation:lanes 2.4s linear infinite}
+@keyframes lanes{to{background-position:-46px 0}}
+.road .lane{display:flex;gap:12px;overflow-x:auto;padding:0 14px;scrollbar-width:none;scroll-snap-type:x mandatory;position:relative;z-index:1}
+.road .lane::-webkit-scrollbar{display:none}
+.parked{flex:none;width:236px;min-height:106px;background:#fff;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink);scroll-snap-align:start;transition:transform .3s var(--ease)}
+.parked:hover{transform:translateY(-3px)}
+.parked .t{font-size:15px;font-weight:600;color:var(--blue);line-height:1.25}
+.parked .still{font-size:12px;color:var(--orange-text);font-weight:600;display:flex;align-items:center;gap:4px}
+.parked .go{font-size:13px;font-weight:600;color:var(--link);margin-top:auto}
+
+/* ---------- cards ---------- */
+.card{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow-sm);transition:box-shadow .3s,transform .3s var(--ease)}
+a.card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.card .t{font-size:16px;font-weight:600;line-height:1.3;color:var(--blue)}
+.card .meta{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.qcard-k{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--link)}
+.quick{background:var(--grey);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;color:var(--blue);text-decoration:none}
+.quick.blue{background:var(--blue);color:#fff}
+.quick .t{font-size:18px;font-weight:500;line-height:1.3}
+.quick .t b{font-weight:500;color:var(--link)}
+.quick.blue .t b{color:var(--sky-text)}
+
+/* ---------- question detail ---------- */
+.sign-area{background:var(--blue-50);padding:18px 20px 0}
+.answer{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.answer.best{box-shadow:var(--shadow);border-color:#cfe9d9}
+.answer.new{animation:pop .6s var(--spring)}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.answer .who{display:flex;align-items:center;gap:8px;min-width:0}
+.answer .who b{font-size:14px;font-weight:600;color:var(--blue)}
+.answer .who span{font-size:13px;color:var(--muted)}
+.answer .body{font-size:15px;line-height:1.5}
+.answer .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vote{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 13px;border-radius:6px;border:1.5px solid var(--blue-100);background:#fff;color:var(--blue);font-weight:600;font-size:14px;transition:all .2s}
+.vote[aria-pressed="true"]{background:var(--green-50);border-color:var(--green);color:var(--green)}
+.vote[aria-pressed="true"] svg{animation:thumb .5s var(--spring)}
+@keyframes thumb{0%{transform:scale(1)}40%{transform:scale(1.35) rotate(-12deg)}100%{transform:scale(1)}}
+.linkbtn{background:none;border:0;padding:0 6px;height:40px;color:var(--link);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.replies{border-left:2px solid var(--blue-100);margin-left:10px;padding-left:14px;display:flex;flex-direction:column;gap:10px}
+.reply{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.45}
+.reply b{color:var(--blue);font-weight:600}
+.mini-compose{display:flex;gap:8px}
+.mini-compose .input{height:42px;font-size:14px;background:var(--grey);border-color:transparent}
+.ref-card{display:flex;gap:10px;align-items:center;background:var(--yellow-50);border:1.5px solid var(--yellow-600);border-radius:6px;padding:10px 12px;color:var(--ink);text-decoration:none}
+.ref-card .t{font-size:14px;font-weight:600;color:var(--blue);line-height:1.3}
+.composer{flex:none;background:#fff;border-top:1px solid var(--line);padding:10px 16px 18px;display:flex;flex-direction:column;gap:8px;z-index:4}
+.composer .hint{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.composer .row1{display:flex;gap:8px;align-items:center}
+.composer .input{background:var(--grey);border-color:transparent;height:50px;font-size:15px}
+.send{width:50px;height:50px;border-radius:6px;border:0;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none}
+.send:hover{background:var(--blue-700)}
+.wait-card{background:var(--blue-50);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.dots{display:inline-flex;gap:4px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--blue);display:block;animation:dot 1.2s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.owner-bar{background:#fff;border:1.5px dashed var(--blue-100);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+
+/* ---------- sheets, toasts, overlays ---------- */
+.scrim{position:absolute;inset:0;background:rgb(11 35 71 / 55%);z-index:40;animation:fade .25s both}
+@keyframes fade{from{opacity:0}}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:78%;background:#fff;border-radius:18px 18px 0 0;z-index:41;display:flex;flex-direction:column;animation:up .35s var(--ease) both;box-shadow:var(--shadow-lg)}
+@keyframes up{from{transform:translateY(100%)}}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:#cfd6e0;margin:10px auto 4px}
+.sheet .sh{padding:6px 20px 12px;display:flex;align-items:center;justify-content:space-between}
+.sheet .sb{overflow-y:auto;padding:0 20px 24px;display:flex;flex-direction:column;gap:10px}
+.toast{position:absolute;left:16px;right:16px;bottom:100px;z-index:60;background:var(--ink);color:#fff;border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);animation:toast 3.2s var(--ease) both;pointer-events:none}
+.toast .ic{width:34px;height:34px;border-radius:50%;background:var(--yellow);color:var(--blue);display:grid;place-items:center;flex:none}
+@keyframes toast{0%{opacity:0;transform:translateY(20px)}10%,85%{opacity:1;transform:none}100%{opacity:0;transform:translateY(10px)}}
+
+.notif-wrap{position:absolute;left:16px;right:16px;top:116px;z-index:51}
+.notif-card{background:#fff;border-radius:10px;padding:22px 20px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow-lg);animation:reveal 1.3s var(--ease) both}
+.notif-card h2{font-size:24px;line-height:1.15;padding-right:56px}
+.notif-quote{background:var(--blue-50);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.notif-quote b{font-size:12px;font-weight:600;color:var(--blue)}
+.notif-quote span{font-size:14px;line-height:1.45}
+.tire{position:absolute;right:-6px;top:-34px;width:76px;height:76px;animation:roll 1.3s var(--ease) both}
+@keyframes roll{from{transform:translateX(-300px) rotate(-720deg)}to{transform:none}}
+@keyframes reveal{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.replay{margin:16px auto 0;display:flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:6px;border:0;background:rgb(255 255 255 / 16%);color:#fff;font-weight:600;font-size:14px}
+
+/* ---------- tutorial ---------- */
+.coach-ring{position:absolute;border-radius:14px;box-shadow:0 0 0 9999px rgb(11 35 71 / 72%);z-index:45;pointer-events:none;transition:all .45s var(--ease)}
+.coach-ring::after{content:"";position:absolute;inset:-6px;border-radius:18px;border:3px solid var(--yellow);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.12)}}
+.coach-tip{position:absolute;left:20px;right:20px;z-index:46;background:var(--yellow);color:var(--blue);padding:16px 18px 14px;transform:rotate(-1deg);box-shadow:var(--shadow-lg);animation:pop .5s var(--spring) both}
+.coach-tip .k{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.coach-tip .t{font-size:18px;font-weight:600;line-height:1.25;margin:4px 0 4px}
+.coach-tip p{font-size:14px;line-height:1.4}
+.coach-tip .nav{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.coach-tip .pips{display:flex;gap:6px}
+.coach-tip .pips i{width:8px;height:8px;border-radius:50%;background:rgb(0 61 134 / 25%);display:block}
+.coach-tip .pips i.on{background:var(--blue);width:20px;border-radius:4px}
+.coach-skip{position:absolute;top:14px;right:16px;z-index:47;background:rgb(255 255 255 / 16%);color:#fff;border:0;height:36px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:600}
+
+/* ---------- onboarding ---------- */
+.onb{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.onb-hero{background:var(--blue);color:#fff;padding:28px 24px 0;position:relative;overflow:hidden;flex:none}
+.onb-hero h1{color:#fff;font-size:36px;line-height:1.02;letter-spacing:-.025em}
+.onb-hero .k{color:var(--yellow)}
+.onb-road{height:120px;position:relative;margin:18px -24px 0;background:var(--road)}
+.onb-road::before{content:"";position:absolute;left:0;right:0;top:56px;height:5px;background:repeating-linear-gradient(90deg,#e9edf2 0 30px,transparent 30px 54px);animation:lanes 1.6s linear infinite}
+.onb-car{position:absolute;bottom:-4px;left:50%;width:220px;margin-left:-110px;animation:drive 1.6s var(--ease) both}
+@keyframes drive{from{transform:translateX(-340px)}to{transform:none}}
+.onb-body{padding:24px;display:flex;flex-direction:column;gap:16px;flex:1;overflow-y:auto}
+.onb-foot{padding:16px 24px 26px;display:flex;flex-direction:column;gap:10px;flex:none}
+.steps{display:flex;gap:6px}
+.steps i{height:4px;flex:1;border-radius:2px;background:var(--line);display:block}
+.steps i.on{background:var(--blue)}
+.point{display:flex;gap:12px;align-items:flex-start}
+.point .ic{width:40px;height:40px;border-radius:50%;background:var(--blue-50);color:var(--blue);display:grid;place-items:center;flex:none}
+.point b{display:block;color:var(--blue);font-weight:600;font-size:15px}
+.point span{font-size:14px;color:var(--muted);line-height:1.4}
+
+/* ---------- updates ---------- */
+.upd{display:flex;gap:12px;padding:14px;border-radius:10px;background:#fff;border:1.5px solid var(--line)}
+.upd .sg{width:44px;height:44px;flex:none;display:grid;place-items:center}
+.upd .t{font-size:16px;font-weight:600;color:var(--blue);line-height:1.25}
+.upd p{font-size:14px;line-height:1.45;margin-top:4px}
+.upd .m{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.ticker{background:var(--ink);color:#fff;border-radius:6px;display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:13px;overflow:hidden;white-space:nowrap}
+.ticker .run{display:inline-block;animation:tick 16s linear infinite}
+@keyframes tick{from{transform:translateX(30%)}to{transform:translateX(-100%)}}
+
+/* ---------- garage ---------- */
+.garage-hero{background:var(--blue);color:#fff;padding:20px 16px 0;position:relative}
+.garage-hero h1{color:#fff}
+.garage-hero p{color:#c9d6ea;font-size:14px;line-height:1.4}
+.car-part{transition:opacity .6s var(--ease)}
+.next-badge{position:absolute;right:16px;bottom:-22px;background:var(--yellow);color:var(--blue);padding:10px 14px;transform:rotate(-1.5deg);box-shadow:var(--shadow);max-width:230px}
+.tl{display:flex;gap:14px}
+.tl .dotcol{display:flex;flex-direction:column;align-items:center;width:40px;flex:none}
+.tl .dot{width:40px;height:40px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:15px;font-weight:600;background:var(--grey);color:var(--muted)}
+.tl .dot.done{background:var(--yellow);border-color:var(--yellow);color:var(--blue)}
+.tl .dot.next{background:#fff;border-color:var(--blue);color:var(--blue)}
+.tl .ln{flex:1;width:2px;min-height:14px;background:var(--line)}
+.tl .ln.done{background:var(--yellow)}
+.tl .tx{flex:1;padding:2px 0 14px;display:flex;flex-direction:column;gap:2px}
+.tl .tx b{font-size:16px;font-weight:600;color:var(--blue)}
+.tl .tx span{font-size:13px;color:var(--muted);line-height:1.35}
+.tl.locked .tx{opacity:.55}
+.bar{height:6px;border-radius:99px;background:#dce1e8;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px;transition:width .6s var(--ease)}
+
+/* ---------- profile ---------- */
+.prof-hero{background:var(--blue-50);padding:24px 20px 20px;display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:var(--grey);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-size:22px;font-weight:600;color:var(--blue);line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+.menu{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.menu a,.menu button{display:flex;align-items:center;gap:12px;min-height:54px;padding:0 14px;border:0;border-bottom:1px solid var(--line);background:#fff;color:var(--blue);font-weight:500;font-size:15px;text-align:left;text-decoration:none;width:100%}
+.menu a:last-child,.menu button:last-child{border-bottom:0}
+.menu a:hover,.menu button:hover{background:var(--grey-2)}
+.menu .chev{margin-left:auto;color:var(--muted)}
+.menu .cnt{margin-left:auto;font-size:13px;color:var(--muted)}
+
+/* ---------- notifications list ---------- */
+.nrow{display:flex;gap:12px;align-items:flex-start;padding:14px 20px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.nrow:hover{background:var(--grey-2)}
+.nrow.unread{background:var(--blue-50)}
+.nrow p{font-size:14px;line-height:1.4}
+.nrow .when{font-size:12px;color:var(--muted);margin-top:2px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:15px;display:flex;flex-direction:column;align-items:center;gap:10px}
+
+/* search results */
+.results{position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border-radius:10px;box-shadow:var(--shadow-lg);z-index:20;overflow:hidden;border:1px solid var(--line)}
+.results a{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+.results a:hover{background:var(--grey-2)}
+.results a:last-child{border-bottom:0}
+.results .t{font-size:14px;font-weight:600;color:var(--blue);line-height:1.3}
+.results .ask{color:var(--link);font-weight:600;font-size:14px}
+
+.intro{flex:none;width:250px;background:var(--grey);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.intro p{font-size:14px;line-height:1.45}
+.hscroll{display:flex;gap:12px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px;scrollbar-width:none;scroll-snap-type:x mandatory}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll>*{scroll-snap-align:start}
+.wave{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:999px;border:1.5px solid var(--blue-100);background:#fff;color:var(--blue);font-weight:600;font-size:13px;align-self:flex-start}
+.wave[aria-pressed="true"]{background:var(--yellow);border-color:var(--yellow)}
+.wave[aria-pressed="true"] svg{animation:wave .8s ease}
+@keyframes wave{0%,100%{transform:rotate(0)}20%{transform:rotate(-18deg)}40%{transform:rotate(14deg)}60%{transform:rotate(-10deg)}80%{transform:rotate(6deg)}}
+
+.screen-in{animation:screenin .35s var(--ease) both}
+@keyframes screenin{from{opacity:0;transform:translateX(14px)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+.results a>span:first-child{flex:none;display:inline-flex;width:18px;justify-content:center}
+.results a>span:first-child svg{width:18px;height:18px}
+
+</style></head><body>
+<aside class="side" aria-label="Over dit prototype">
+  <img src="data:image/png;base64,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" alt="ANWB">
+  <h1>Vast? Vraag het een <em>collega</em>.</h1>
+  <p>Wegwijs is een vraag-en-antwoordplatform voor ANWB-collega’s. Je vraag komt bij wie het antwoord weet, en beantwoorde vragen blijven vindbaar voor de volgende nieuwe collega.</p>
+  <ul>
+    <li>Rondleiding voor nieuwe medewerkers</li>
+    <li>Vragen op verkeersborden, open vragen op de vluchtstrook</li>
+    <li>Help collega’s en bouw je eigen Wegenwacht-auto</li>
+  </ul>
+</aside>
+<div class="device"><div id="app" aria-live="polite"></div></div>
+<script>window.WEGWIJS_LOGO = "data:image/png;base64,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";</script>
+<script>
+/* Wegwijs — concept 1 (Q&A) — klikbaar prototype voor de ANWB
+   Eén bestand, geen backend: alle data staat in localStorage van deze browser. */
+(function () {
+'use strict';
+
+const KEY = 'wegwijs-v3.1';
+const LOGO = window.WEGWIJS_LOGO || '';
+
+/* ------------------------------------------------------------------ icons */
+const IC = {
+  home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  archive: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  sign: '<path d="M12 3v18M8 21h8"/><path d="M5 5h11l3 3-3 3H5z"/>',
+  car: '<path d="M3 16v-4l2.5-5h13l2.5 5v4z"/><circle cx="7.5" cy="16.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>',
+  wheel: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3v5.8M12 15.2V21M3 12h5.8M15.2 12H21M5.6 5.6l4.1 4.1M14.3 14.3l4.1 4.1M5.6 18.4l4.1-4.1M14.3 9.7l4.1-4.1"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  back: '<path d="M15 5l-7 7 7 7"/>',
+  close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  send: '<path d="M4 12l16-8-6 16-3-7z"/>',
+  thumb: '<path d="M7 11v9H4v-9zM7 11l4-7a2 2 0 0 1 3 2l-1 4h6a2 2 0 0 1 2 2.3l-1.3 6A2 2 0 0 1 17.7 20H7"/>',
+  reply: '<path d="M4 5h16v11H9l-5 4z"/>',
+  check: '<path d="M5 12l5 5 9-10"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  warn: '<path d="M12 3l10 18H2z"/><path d="M12 9.5v4.5M12 17.2v.3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 4-6.5 8-6.5s7.2 2.3 8 6.5"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',
+  refresh: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  anon: '<path d="M3 3l18 18"/><path d="M10.6 6.1A9.6 9.6 0 0 1 12 6c5 0 8.5 4 9.5 6a12.7 12.7 0 0 1-2.6 3.4M6.6 6.7C4.6 8 3.2 10 2.5 12c1 2 4.5 6 9.5 6 1.6 0 3-.4 4.3-1"/>',
+  chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
+  hand: '<path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 10V4.5a1.5 1.5 0 0 1 3 0V11M14 10.5V6a1.5 1.5 0 0 1 3 0v7.5c0 4-2.5 7.5-6.5 7.5-2.6 0-4.3-1.3-5.7-3.4L3 14.2a1.5 1.5 0 0 1 2.4-1.8L8 15"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.6v.4"/>',
+  trophy: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M9.5 17h5"/>',
+  route: '<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"/>',
+  logout: '<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'
+};
+const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[n] || ''}</svg>`;
+
+/* ------------------------------------------------------------------ data */
+const DOMAINS = ['HR', 'IT', 'Facilitair', 'Klantenservice', 'Wegenwacht', 'Finance', 'Marketing', 'Algemeen'];
+const EXPERT = { HR: 'sanne', IT: 'ruben', Facilitair: 'fatima', Klantenservice: 'joyce', Wegenwacht: 'mehmet', Finance: 'daan', Marketing: 'noor', Algemeen: 'kees' };
+const AUTO_ANSWER = {
+  HR: 'Goeie vraag! Dit regel je in het personeelsportaal. Kom je er niet uit, stuur me gerust een berichtje.',
+  IT: 'Dit kun je aanvragen via het servicedesk-portaal onder ‘Toegang aanvragen’. Meestal binnen een dag geregeld.',
+  Facilitair: 'Dat kan via de Facilitair-app onder ‘Reserveren’. Doe het wel vóór 16:00 de dag ervoor.',
+  Klantenservice: 'Hier hebben we een vaste gesprekskaart voor. Ik zet hem in je mail, dan loop ik er morgen even met je doorheen.',
+  Wegenwacht: 'Check de handleiding in de app onder Help → Codes. Bij twijfel kun je altijd de meldkamer bellen.',
+  Finance: 'Dat gaat via het declaratieportaal. Bonnetje fotograferen, kostenplaats kiezen en klaar.',
+  Marketing: 'We gebruiken alleen de ANWB-beeldbank. Daar staan ook de juiste rechten bij.',
+  Algemeen: 'Leuke vraag! Ik denk dat veel collega’s hier iets over te zeggen hebben.'
+};
+
+function seed() {
+  return {
+    v: 3,
+    onboarded: false,
+    tutorial: 0,
+    me: { id: 'me', name: 'Jim', role: 'Nieuwe collega', dept: 'IT', team: 'Digitale Kanalen', expertise: [], color: '#f08a00', answers: 14, best: 3, asked: 0 },
+    users: {
+      sanne: { id: 'sanne', name: 'Sanne de Vries', role: 'HR-adviseur', dept: 'HR', team: 'Team Personeel', expertise: ['Verlof', 'Thuiswerken', 'Personeelsportaal'], color: '#003d86', answers: 87, best: 41 },
+      mehmet: { id: 'mehmet', name: 'Mehmet Aydın', role: 'Wegenwachter', dept: 'Wegenwacht', team: 'Regio Zuid-Holland', expertise: ['Storingscodes', 'Bus-inrichting', 'Pechhulp-app'], color: '#1d8a4e', answers: 52, best: 19 },
+      lotte: { id: 'lotte', name: 'Lotte Kuipers', role: 'Medewerker ledenservice', dept: 'Klantenservice', team: 'Team Leden', expertise: ['Lidmaatschap'], color: '#0a6ccf', answers: 6, best: 1 },
+      joyce: { id: 'joyce', name: 'Joyce Mulder', role: 'Teamleider', dept: 'Klantenservice', team: 'Team Leden', expertise: ['Contributie', 'Gesprekstechniek'], color: '#b05f00', answers: 64, best: 30 },
+      fatima: { id: 'fatima', name: 'Fatima El Amrani', role: 'Facilitair coördinator', dept: 'Facilitair', team: 'Huisvesting', expertise: ['Toegangspassen', 'Parkeren', 'Flexplekken'], color: '#7a3db8', answers: 73, best: 37 },
+      daan: { id: 'daan', name: 'Daan Visser', role: 'Financieel adviseur', dept: 'Finance', team: 'Control', expertise: ['Declaraties', 'Reiskosten'], color: '#0b2347', answers: 29, best: 14 },
+      noor: { id: 'noor', name: 'Noor Jansen', role: 'Contentmarketeer', dept: 'Marketing', team: 'Merk & Campagnes', expertise: ['Beeldbank', 'Tone of voice', 'AI-tools'], color: '#c8102e', answers: 33, best: 11 },
+      kees: { id: 'kees', name: 'Kees de Groot', role: 'Planner', dept: 'Wegenwacht', team: 'Planning', expertise: ['Roosters', 'Winterdienst'], color: '#5a6b84', answers: 41, best: 22 },
+      tim: { id: 'tim', name: 'Tim Bos', role: 'Wegenwachter (nieuw)', dept: 'Wegenwacht', team: 'Regio Utrecht', expertise: [], color: '#1f6f8b', answers: 2, best: 0 },
+      ruben: { id: 'ruben', name: 'Ruben Smit', role: 'Front-end developer', dept: 'IT', team: 'Digitale Kanalen', expertise: ['Staging', 'VPN', 'Toegang'], color: '#002f6c', answers: 18, best: 7 }
+    },
+    questions: [
+      { id: 161, type: 'vraag', domain: 'HR', title: 'Hoe registreer ik mijn thuiswerkdagen?', body: 'Ik werk twee dagen per week thuis, maar kan nergens vinden waar ik dat doorgeef. Moet dat elke week opnieuw?', author: 'lotte', anon: false, ago: '2 uur geleden', hours: 2, status: 'opgelost', views: 48, featured: true,
+        answers: [
+          { id: 'a1', author: 'sanne', text: 'In het personeelsportaal onder Mijn uren → Thuiswerken. Eén keer per maand invullen is genoeg, de vergoeding gaat dan vanzelf mee met je salaris.', votes: 12, best: true,
+            replies: [{ author: 'mehmet', text: 'Geldt dit ook voor de buitendienst?' }, { author: 'sanne', text: 'Nee, voor de buitendienst loopt het via je planner. Kees weet daar alles van!' }] },
+          { id: 'a2', author: 'mehmet', text: 'Tip: het portaal werkt ook gewoon op je telefoon.', votes: 4, replies: [] }
+        ] },
+      { id: 172, type: 'vraag', domain: 'Wegenwacht', title: 'Hoe werken de nieuwe storingscodes in de app?', body: 'Sinds de update zie ik andere codes bij een melding. Is er ergens een overzicht?', author: 'tim', anon: false, ago: '5 dagen geleden', hours: 120, status: 'open', views: 31, answers: [] },
+      { id: 170, type: 'vraag', domain: 'Facilitair', title: 'Kan ik een parkeerplek reserveren op kantoor?', body: 'Ik kom op dinsdag met de auto. Moet ik vooraf iets regelen?', author: 'ruben', anon: false, ago: '3 dagen geleden', hours: 72, status: 'open', views: 22, answers: [] },
+      { id: 175, type: 'vraag', domain: 'IT', title: 'Wie helpt mij met VPN op een tweede laptop?', body: 'Ik heb een extra laptop voor testen gekregen, maar de VPN-client wil niet installeren.', author: 'lotte', anon: false, ago: '2 dagen geleden', hours: 50, status: 'open', views: 14, answers: [] },
+      { id: 180, type: 'discussie', domain: 'Algemeen', title: 'Hebben jullie nog goede tips voor AI-gebruik in je werk?', body: 'Ik ben benieuwd hoe jullie AI gebruiken. Wat werkt goed, en waar moeten we juist voorzichtig mee zijn?', author: 'noor', anon: false, ago: 'gisteren', hours: 26, status: 'open', views: 112,
+        answers: [
+          { id: 'd1', author: 'mehmet', text: 'Ik laat mijn werkbonnen samenvatten. Scheelt me elke dag een kwartier.', votes: 9, replies: [] },
+          { id: 'd2', author: 'joyce', text: 'Nooit klantgegevens erin plakken! Check altijd het AI-beleid op intranet.', votes: 17, replies: [{ author: 'noor', text: 'Goeie, die zet ik bovenaan.' }] },
+          { id: 'd3', author: 'ruben', text: 'Voor code-reviews is het een prima tweede paar ogen.', votes: 5, replies: [] }
+        ] },
+      { id: 158, type: 'vraag', domain: 'Klantenservice', title: 'Wat zeg ik als een lid vraagt naar de nieuwe contributie?', body: 'Ik krijg deze vraag veel aan de telefoon. Is er een vaste uitleg?', author: 'lotte', anon: false, ago: '1 week geleden', hours: 170, status: 'opgelost', views: 96,
+        answers: [{ id: 'b1', author: 'joyce', text: 'Gebruik de gesprekskaart ‘Contributie 2027’ in de kennisbank. Belangrijkste punt: de Wegenwacht-dekking blijft gelijk.', votes: 21, best: true, replies: [] }] },
+      { id: 153, type: 'vraag', domain: 'Facilitair', title: 'Bij wie haal ik mijn toegangspas op?', body: 'Mijn eerste werkdag is maandag. Waar moet ik zijn voor mijn pas?', author: 'ruben', anon: false, ago: '1 week geleden', hours: 180, status: 'opgelost', views: 140,
+        answers: [{ id: 'c1', author: 'fatima', text: 'Bij de receptie op de begane grond, vanaf 08:30. Neem je ID mee!', votes: 33, best: true, replies: [] }] },
+      { id: 149, type: 'vraag', domain: 'Finance', title: 'Waar dien ik mijn reiskosten in?', body: '', author: 'mehmet', anon: false, ago: '2 weken geleden', hours: 340, status: 'opgelost', views: 75,
+        answers: [{ id: 'e1', author: 'daan', text: 'Via het declaratieportaal. Uiterlijk de 5e van de maand, dan zit het bij je volgende salaris.', votes: 15, best: true, replies: [] }] },
+      { id: 144, type: 'vraag', domain: 'IT', title: 'Hoe krijg ik toegang tot de staging-omgeving?', body: 'Net begonnen bij Digitale Kanalen. Wie moet ik hebben?', author: 'lotte', anon: false, ago: '2 weken geleden', hours: 350, status: 'opgelost', views: 58,
+        answers: [{ id: 'f1', author: 'ruben', text: 'Servicedesk-portaal → Toegang aanvragen → Staging. Je leidinggevende krijgt een akkoordverzoek.', votes: 11, best: true, replies: [] }] },
+      { id: 139, type: 'vraag', domain: 'Marketing', title: 'Welke fotobank mogen we gebruiken voor campagnes?', body: '', author: 'joyce', anon: false, ago: '3 weken geleden', hours: 520, status: 'opgelost', views: 44,
+        answers: [{ id: 'g1', author: 'noor', text: 'Alleen de ANWB-beeldbank. Daar staan de rechten per foto bij.', votes: 8, best: true, replies: [] }] },
+      { id: 127, type: 'vraag', domain: 'Wegenwacht', title: 'Is er een overzicht van alle storingscodes?', body: 'Ik ben nieuw in de buitendienst en ken nog niet alle codes uit mijn hoofd.', author: 'kees', anon: false, ago: '1 maand geleden', hours: 760, status: 'opgelost', views: 203,
+        answers: [{ id: 'k1', author: 'mehmet', text: 'Ja! In de Wegenwacht-app onder Help → Codes. Per code staat erbij wat je moet doen en wie je kunt bellen.', votes: 26, best: true, replies: [] }] },
+      { id: 131, type: 'vraag', domain: 'Wegenwacht', title: 'Waar vind ik de planning voor de winterdiensten?', body: '', author: 'mehmet', anon: false, ago: '1 maand geleden', hours: 700, status: 'opgelost', views: 67,
+        answers: [{ id: 'h1', author: 'kees', text: 'In de planningsapp onder Diensten → Winter. Ruilen kan tot 48 uur van tevoren.', votes: 12, best: true, replies: [] }] }
+    ],
+    nextId: 182,
+    drafts: [
+      { id: 'd1', type: 'vraag', domain: 'Facilitair', title: 'Kan ik een flexplek vastzetten voor dinsdag?', body: '', when: 'vandaag, 09:12' },
+      { id: 'd2', type: 'vraag', domain: 'Marketing', title: 'Wie keurt teksten voor de nieuwsbrief goed?', body: 'Ik heb een stukje geschreven voor de interne nieuwsbrief en wil weten', when: 'gisteren' }
+    ],
+    intros: [
+      { id: 'i1', author: 'ruben', text: 'Hoi! Ik ben Ruben, sinds maandag front-end developer bij Digitale Kanalen. Fan van fietsen en slechte woordgrappen.', waves: 6 },
+      { id: 'i0', author: 'lotte', text: 'Hallo allemaal! Lotte hier, nieuw bij Team Leden. Ik stel vast nog veel vragen, sorry alvast ;)', waves: 14 }
+    ],
+    notifs: [
+      { id: 'n1', q: 161, who: 'sanne', text: 'Sanne gaf een beste antwoord op een vraag die je volgt', when: '2 uur geleden', read: false }
+    ],
+    updates: [
+      { type: 'nieuw', title: 'Nieuwe versie van het personeelsportaal', text: 'Thuiswerkdagen en verlof vraag je nu in één scherm aan.', when: 'Vandaag', domain: 'HR', q: 161 },
+      { type: 'onderhoud', title: 'VPN-onderhoud zaterdag 07:00–09:00', text: 'Inloggen op afstand kan dan even niet. Plan je werk eromheen.', when: 'Za 31 okt', domain: 'IT' },
+      { type: 'opgelost', title: 'Storing Wegenwacht-app verholpen', text: 'Storingscodes laden weer normaal. Dank voor alle meldingen!', when: 'Gisteren', domain: 'Wegenwacht', q: 172 },
+      { type: 'onderhoud', title: 'Parkeergarage hoofdkantoor deels dicht', text: 'Niveau −2 is tot vrijdag afgesloten wegens schilderwerk.', when: 'Deze week', domain: 'Facilitair', q: 170 },
+      { type: 'nieuw', title: 'Welkom bij Wegwijs', text: 'Stel je vragen voortaan hier. Hoe meer we delen, hoe minder we zoeken.', when: 'Ma 26 okt', domain: 'Algemeen' }
+    ],
+    voted: {},
+    waved: {},
+    following: [161]
+  };
+}
+
+let S;
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.v === 3) return s; } } catch (e) {}
+  return seed();
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+S = load();
+
+/* ------------------------------------------------------------------ helpers */
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const user = (id) => (id === 'me' ? S.me : S.users[id]) || { name: 'Collega', color: '#9aa6b8' };
+const first = (name) => String(name || '').split(' ')[0];
+const initials = (name) => { const p = String(name || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); };
+const q = (id) => S.questions.find((x) => x.id === Number(id));
+const plate = (id) => `<span class="plate"><span class="nl">NL</span><span class="nr">VRAAG-${id}</span></span>`;
+function av(id, size = 36, link = true, anon = false) {
+  if (anon) return `<span class="av anon" style="--s:${size}px" aria-label="Anonieme collega">${ic('anon', 'sm')}</span>`;
+  const u = user(id);
+  const inner = esc(initials(u.name));
+  const st = `--s:${size}px;--c:${u.color}`;
+  return link ? `<a class="av" style="${st}" href="#/profiel/${u.id}" aria-label="Profiel van ${esc(u.name)}">${inner}</a>` : `<span class="av" style="${st}" aria-hidden="true">${inner}</span>`;
+}
+function authorName(qq) { return qq.anon ? 'Anonieme collega' : user(qq.author).name; }
+function sign(kicker, title, opts = {}) {
+  const tag = opts.href ? 'a' : 'div';
+  const href = opts.href ? ` href="${opts.href}"` : '';
+  return `<${tag} class="sign ${opts.cls || ''}"${href}${opts.id ? ` id="${opts.id}"` : ''}>
+    <span class="board"><span class="inner"><span class="txt"><span class="k">${kicker}</span><span class="t"${opts.live ? ' data-live="sign"' : ''}>${title}</span></span>${opts.arrow === false ? '' : `<svg class="i lg" viewBox="0 0 24 24" aria-hidden="true" style="stroke:#fff;stroke-width:2.4">${IC.arrow}</svg>`}</span></span>
+    <span class="poles" aria-hidden="true"><i></i><i></i></span></${tag}>`;
+}
+function levelFor(n) { return n >= 30 ? 4 : n >= 15 ? 3 : n >= 5 ? 2 : 1; }
+const PARTS = [
+  { name: 'Chassis', need: 1, sub: 'Je eerste vraag of antwoord. Welkom op de weg!' },
+  { name: 'Wielen', need: 5, sub: '5 antwoorden gegeven' },
+  { name: 'Koplampen', need: 15, sub: '15 antwoorden, of 3× het beste antwoord' },
+  { name: 'Wegenwacht-auto', need: 30, sub: 'Carrosserie + zwaailicht: 30 antwoorden en een vraag van de vluchtstrook opgelost' }
+];
+function carSVG(level, w = 358) {
+  const op = (n) => (level >= n ? 1 : 0.14);
+  const h = Math.round(w * 0.5);
+  return `<svg viewBox="0 0 320 160" width="${w}" height="${h}" fill="none" role="img" aria-label="Jouw auto: ${['alleen het chassis', 'chassis en wielen', 'chassis, wielen en koplampen', 'complete Wegenwacht-auto'][level - 1]}">
+  <path d="M0 150h320" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-dasharray="14 10"/>
+  <g class="car-part" opacity="${op(4)}">
+    <path d="M36 102V82c0-7 4-11 11-12l40-5 30-27c4-3 8-4 13-4h82c5 0 9 2 12 5l26 26 22 5c8 2 12 7 12 15v17z" fill="#ffcd01" stroke="#0b2347" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M98 66l26-24h44v24z" fill="#bcd9f5" stroke="#0b2347" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M176 42h28c3 0 5 1 7 3l22 21h-57z" fill="#bcd9f5" stroke="#0b2347" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M38 84h248v7H38z" fill="#003d86"/>
+    <path d="M172 68v32" stroke="#0b2347" stroke-width="2"/><path d="M182 75h10" stroke="#0b2347" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M228 62l9-3v7z" fill="#0b2347"/>
+    <rect x="148" y="26" width="44" height="8" rx="3" fill="#f08a00" stroke="#0b2347" stroke-width="2"/>
+    <path d="M150 20l-4-6M170 18v-7M190 20l4-6" stroke="#ffcd01" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="92" cy="106" r="25" fill="#003d86"/><circle cx="236" cy="106" r="25" fill="#003d86"/>
+  </g>
+  <g class="car-part" opacity="${op(3)}">
+    <path d="M276 78h10c2 0 3 2 3 4v6h-13z" fill="#fff8d9" stroke="#0b2347" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M297 78l17-5M298 85h18M297 92l17 5" stroke="#ffcd01" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M33 78h7v12h-7z" fill="#c8102e" stroke="#0b2347" stroke-width="1.5"/>
+  </g>
+  <rect x="40" y="98" width="248" height="10" rx="3" fill="#0b2347" stroke="#ffcd01" stroke-width="2"/>
+  <g class="car-part" opacity="${op(2)}">
+    ${[92, 236].map((cx) => `<circle cx="${cx}" cy="122" r="21" fill="#0b2347"/><circle cx="${cx}" cy="122" r="19" stroke="#33476a" stroke-width="4" stroke-dasharray="3 3"/><circle cx="${cx}" cy="122" r="10" fill="#e3e7ee"/><circle cx="${cx}" cy="122" r="3.5" fill="#003d86"/>`).join('')}
+  </g></svg>`;
+}
+const TIRE = `<svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="36" fill="#0b2347"/><circle cx="38" cy="38" r="33" fill="none" stroke="#2e4570" stroke-width="5" stroke-dasharray="5 4"/><circle cx="38" cy="38" r="20" fill="#e3e7ee"/><path d="M38 22v32M22 38h32M27 27l22 22M49 27L27 49" stroke="#9aa6b8" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="38" r="7" fill="#ffcd01" stroke="#003d86" stroke-width="2"/></svg>`;
+
+const STOP = new Set(['hoe', 'wat', 'waar', 'wie', 'kan', 'ik', 'mijn', 'een', 'de', 'het', 'van', 'op', 'in', 'voor', 'aan', 'met', 'je', 'jullie', 'we', 'mag', 'moet', 'is', 'er', 'dat', 'die', 'zijn', 'naar', 'bij', 'hebben', 'nog', 'goede', 'krijg', 'geef', 'door', 'nieuwe', 'nieuw', 'werken', 'werkt', 'app', 'alle', 'jullie', 'welke']);
+const words = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w));
+function similar(title, exceptId) {
+  const a = words(title); if (!a.length) return [];
+  return S.questions.filter((x) => x.id !== exceptId && x.type === 'vraag').map((x) => {
+    const b = words(x.title + ' ' + x.domain);
+    let score = 0;
+    a.forEach((w) => { if (b.some((v) => v === w || (w.length >= 5 && v.length >= 5 && (v.startsWith(w.slice(0, 6)) || w.startsWith(v.slice(0, 6)))))) score++; });
+    return { x, score };
+  }).filter((r) => r.score > 0).sort((p, r) => r.score - p.score || (r.x.status === 'opgelost') - (p.x.status === 'opgelost'));
+}
+
+/* ------------------------------------------------------------------ chrome */
+function unread() { return S.notifs.filter((n) => !n.read).length; }
+function header() {
+  const n = unread();
+  return `<header class="hdr">
+    <a class="brand" href="#/" aria-label="Wegwijs home"><img src="${LOGO}" alt="ANWB"><span>Wegwijs</span></a>
+    <div class="hdr-actions">
+      <a class="icon-btn" id="wheelBtn" href="#/meldingen" aria-label="Meldingen${n ? `, ${n} nieuw` : ''}">${ic('wheel', n ? 'wheel-spin' : '')}${n ? `<span class="badge">${n}</span>` : ''}</a>
+      <a class="av" href="#/profiel/me" style="--s:40px;--c:${S.me.color}" aria-label="Mijn profiel">${esc(initials(S.me.name))}</a>
+    </div></header>`;
+}
+function subHeader(title, opts = {}) {
+  return `<header class="hdr-sub">
+    <a class="icon-btn" href="${opts.back || '#/'}" data-back aria-label="${opts.close ? 'Sluiten' : 'Terug'}">${ic(opts.close ? 'close' : 'back')}</a>
+    <span class="ttl">${title}</span>
+    ${opts.right || '<span style="width:44px"></span>'}</header>`;
+}
+function tabs(active) {
+  const t = (key, href, icon, label) => `<a class="tab${active === key ? ' on' : ''}" href="${href}"${active === key ? ' aria-current="page"' : ''}>${ic(icon)}${label}</a>`;
+  return `<nav class="tabs" aria-label="Hoofdmenu">
+    ${t('home', '#/', 'home', 'Home')}
+    ${t('archief', '#/archief', 'archive', 'Archief')}
+    <a class="tab" href="#/nieuw" id="fabTab"><span class="fab">${ic('plus')}</span>Vraag</a>
+    ${t('updates', '#/updates', 'sign', 'Updates')}
+    ${t('garage', '#/garage', 'car', 'Garage')}
+  </nav>`;
+}
+
+/* ------------------------------------------------------------------ screens */
+function vHome() {
+  const feat = S.questions.find((x) => x.featured) || S.questions[0];
+  const best = feat.answers.find((a) => a.best) || feat.answers[0];
+  const parked = S.questions.filter((x) => x.status === 'open' && x.type === 'vraag' && !x.mine && x.answers.length === 0).sort((a, b) => b.hours - a.hours);
+  const disc = S.questions.filter((x) => x.type === 'discussie');
+  const mine = S.questions.filter((x) => x.mine);
+  return `${header()}<main class="main screen-in" id="main">
+  <section class="pad stack gap14" style="padding-bottom:0">
+    <h1 class="h-hero">Vast? Vraag het<br>een <span class="mark">collega</span>.</h1>
+    <div class="search" id="searchWrap">
+      ${ic('search')}
+      <label class="vh" for="q">Zoek of je vraag al gesteld is</label>
+      <input class="input" id="q" type="search" autocomplete="off" placeholder="Is je vraag al eens gesteld?">
+      <div id="results"></div>
+    </div>
+  </section>
+  ${mine.length ? `<section class="pad stack gap10" style="padding-bottom:0">
+    <div class="sec-h"><h2>Jouw vragen</h2></div>
+    ${mine.slice(0, 2).map((m) => `<a class="card" href="#/vraag/${m.id}"><span class="row gap8" style="justify-content:space-between"><span class="qcard-k">${esc(m.domain)}</span>${m.status === 'opgelost' ? '<span class="tag green">Opgelost</span>' : m.answers.length ? `<span class="tag yellow">${m.answers.length} ${m.answers.length === 1 ? 'antwoord' : 'antwoorden'}</span>` : '<span class="tag grey">Wacht op antwoord</span>'}</span><span class="t">${esc(m.title)}</span></a>`).join('')}
+  </section>` : ''}
+  <section class="pad" style="padding-bottom:0;padding-top:22px">
+    ${sign(`Vraag van vandaag · ${esc(feat.domain)}`, esc(feat.title), { href: `#/vraag/${feat.id}`, id: 'todaySign' })}
+    ${best ? `<a class="badge-card" href="#/vraag/${feat.id}" style="margin:-12px 0 0 34px">
+      <span class="row gap8">${av(best.author, 26, false)}<span class="k">${esc(first(user(best.author).name))} antwoordde · ${esc(user(best.author).dept)}</span></span>
+      <span class="b">${esc(best.text.length > 92 ? best.text.slice(0, 90) + '…' : best.text)}</span>
+      <span class="arrow-link">Bekijk gesprek ${ic('arrow', 'sm')}</span></a>` : ''}
+  </section>
+  ${parked.length ? `<section class="pad stack gap10" style="padding-top:26px;padding-bottom:0">
+    <div class="row gap10"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--orange)"><path d="M12 3l10 18H2z"/><path d="M12 8.5l5 9H7z"/></svg>
+      <div class="stack"><h2 style="font-size:20px">Op de vluchtstrook</h2><span class="muted" style="font-size:13px">Deze vragen staan al even stil. Help je mee?</span></div></div>
+    <div class="road"><div class="lane">
+      ${parked.map((p) => `<a class="parked" href="#/vraag/${p.id}"><span class="row" style="justify-content:space-between"><span class="tag">${esc(p.domain)}</span><span class="still">${ic('clock', 'sm')}${p.hours >= 48 ? Math.round(p.hours / 24) + ' dagen stil' : p.hours + ' uur stil'}</span></span><span class="t">${esc(p.title)}</span><span class="go">Help mee →</span></a>`).join('')}
+    </div></div>
+  </section>` : ''}
+  ${disc.length ? `<section class="pad stack gap10" style="padding-top:26px;padding-bottom:0">
+    <div class="sec-h"><div class="stack"><h2>Praat mee</h2><span class="sub">Discussies blijven open staan</span></div></div>
+    ${disc.map((d) => `<a class="quick blue" href="#/vraag/${d.id}"><span class="row" style="justify-content:space-between"><span class="tag white">Discussie · ${esc(d.domain)}</span><span style="font-size:13px;color:#c9d6ea">${d.answers.length} reacties</span></span><span class="t">${esc(d.title)}</span><span class="row" style="justify-content:space-between"><span class="av-stack">${[...new Set(d.answers.map((a) => a.author))].slice(0, 4).map((a) => av(a, 28, false)).join('')}</span><span class="arrow-link" style="color:#fff">Doe mee ${ic('arrow', 'sm')}</span></span></a>`).join('')}
+  </section>` : ''}
+  <section class="pad stack gap10" style="padding-top:26px">
+    <div class="sec-h"><div class="stack"><h2>Nieuwe collega’s</h2><span class="sub">Zeg even hoi, dat maakt de start een stuk makkelijker</span></div></div>
+    <div class="hscroll">
+      ${S.intros.map((i) => { const u = user(i.author); const on = !!S.waved[i.id]; return `<div class="intro"><div class="row gap10">${av(i.author, 40)}<div class="stack"><b style="color:var(--blue);font-weight:600;font-size:15px">${esc(u.name)}</b><span class="muted" style="font-size:12px">${esc(u.role)} · ${esc(u.dept)}</span></div></div><p>${esc(i.text)}</p>${i.author === 'me' ? `<span class="muted" style="font-size:13px;display:flex;gap:6px;align-items:center">${ic('hand', 'sm')} ${i.waves} collega’s zeiden hoi</span>` : `<button class="wave" data-act="wave" data-id="${i.id}" aria-pressed="${on}">${ic('hand', 'sm')} ${on ? 'Hoi gezegd' : 'Zeg hoi'} · ${i.waves + (on ? 1 : 0)}</button>`}</div>`; }).join('')}
+    </div>
+  </section>
+  <div style="height:12px"></div>
+  </main>${tabs('home')}${S.tutorial ? coach() : ''}`;
+}
+
+function answerBlock(qq, a, owner) {
+  const u = user(a.author);
+  const voted = !!S.voted[qq.id + ':' + a.id];
+  const open = OPEN_REPLIES.has(a.id);
+  const ref = a.ref ? q(a.ref) : null;
+  const disc = qq.type === 'discussie';
+  return `<div class="answer${a.best ? ' best' : ''}${a.fresh ? ' new' : ''}" id="ans-${a.id}">
+    <div class="row" style="justify-content:space-between;gap:8px">
+      <span class="who">${av(a.author, 32)}<span class="stack" style="min-width:0"><b>${esc(u.name)}</b><span>${esc(u.role || '')}${u.dept ? ' · ' + esc(u.dept) : ''}</span></span></span>
+      ${a.best ? `<span class="tag green">${ic('check', 'sm')}Beste antwoord</span>` : ''}
+    </div>
+    ${a.text ? `<p class="body">${esc(a.text)}</p>` : ''}
+    ${ref ? `<a class="ref-card" href="#/vraag/${ref.id}">${ic('link')}<span class="stack gap4 grow"><span class="kicker" style="color:var(--orange-text)">Het antwoord staat al in</span><span class="t">${esc(ref.title)}</span></span>${plate(ref.id)}</a>` : ''}
+    <div class="acts">
+      <button class="vote" data-act="vote" data-q="${qq.id}" data-a="${a.id}" aria-pressed="${voted}">${ic('thumb', 'sm')}${a.votes + (voted ? 1 : 0)}<span class="vh"> vonden dit nuttig</span></button>
+      <button class="linkbtn" data-act="toggleReplies" data-a="${a.id}" aria-expanded="${open}">${ic('reply', 'sm')}${a.replies.length ? a.replies.length + (a.replies.length === 1 ? ' reactie' : ' reacties') : 'Reageer'}</button>
+      ${owner && !disc && !a.best && a.author !== 'me' ? `<button class="btn good sm" style="margin-left:auto" data-act="best" data-q="${qq.id}" data-a="${a.id}">${ic('check', 'sm')}Kies als beste</button>` : ''}
+    </div>
+    ${open ? `<div class="replies">
+      ${a.replies.map((r) => `<div class="reply">${av(r.author, 26)}<p><b>${esc(first(user(r.author).name))}</b> ${esc(r.text)}</p></div>`).join('')}
+      <form class="mini-compose" data-act="reply" data-q="${qq.id}" data-a="${a.id}"><label class="vh" for="r-${a.id}">Reageer op ${esc(first(u.name))}</label><input class="input" id="r-${a.id}" name="t" placeholder="Reageer op ${esc(first(u.name))}…" autocomplete="off"><button class="send" style="width:42px;height:42px" aria-label="Verstuur reactie">${ic('send', 'sm')}</button></form>
+    </div>` : ''}
+  </div>`;
+}
+const OPEN_REPLIES = new Set(['a1']);
+let pendingRef = null;
+
+function vQuestion(id) {
+  const qq = q(id);
+  if (!qq) return `${subHeader('Niet gevonden')}<main class="main"><div class="empty">${ic('warn', 'lg')}Deze vraag bestaat niet (meer).<a class="btn outline sm" href="#/">Naar home</a></div></main>`;
+  if (!VIEWED.has(qq.id)) { VIEWED.add(qq.id); qq.views++; }
+  const owner = qq.author === 'me';
+  const disc = qq.type === 'discussie';
+  const answers = [...qq.answers].sort((a, b) => (b.best ? 1 : 0) - (a.best ? 1 : 0));
+  const asker = qq.anon ? null : user(qq.author);
+  const experts = Object.values(S.users).filter((u) => u.dept === qq.domain).slice(0, 3);
+  const statusTag = disc ? '<span class="tag" style="background:#e3f1ea;color:#1d6b45">Discussie</span>' : qq.status === 'opgelost' ? '<span class="tag green">Opgelost</span>' : '<span class="tag orange">Open</span>';
+  return `${subHeader(plate(qq.id), { back: '#/', right: statusTag })}
+  <main class="main screen-in" id="main">
+    <div class="sign-area">${sign(`${esc(qq.domain)}${disc ? ' · blijft open' : ''}`, esc(qq.title), { arrow: false, cls: disc ? 'disc' : '' })}</div>
+    <article class="pad stack gap10" style="padding-top:14px">
+      <div class="row gap10">${qq.anon ? av(null, 36, false, true) : av(qq.author, 36)}
+        <span class="stack" style="line-height:1.3"><span style="font-size:14px;font-weight:600;color:var(--blue)">${esc(authorName(qq))}${owner ? ' (jij)' : ''}</span><span class="muted" style="font-size:12px">${asker && !qq.anon ? esc(asker.role) + ' · ' : ''}${esc(qq.ago)} · ${qq.views} keer bekeken</span></span></div>
+      ${qq.body ? `<p style="font-size:15px;line-height:1.5">${esc(qq.body)}</p>` : ''}
+      ${owner && !disc ? `<div class="owner-bar"><span class="kicker" style="color:var(--muted)">Jouw vraag · zelf aangeven</span>
+        <div class="seg" role="group" aria-label="Status van je vraag"><button data-act="status" data-q="${qq.id}" data-v="open" aria-pressed="${qq.status === 'open'}">${ic('clock', 'sm')}Laat open staan</button><button data-act="status" data-q="${qq.id}" data-v="opgelost" aria-pressed="${qq.status === 'opgelost'}">${ic('check', 'sm')}Opgelost</button></div></div>` : ''}
+    </article>
+    <div class="pad" style="padding-top:4px;padding-bottom:8px"><div class="sec-h"><h2 style="font-size:18px">${answers.length} ${disc ? (answers.length === 1 ? 'reactie' : 'reacties') : (answers.length === 1 ? 'antwoord' : 'antwoorden')}</h2>${!disc && qq.status !== 'opgelost' && !owner ? '<span class="sub">Weet jij het?</span>' : ''}</div></div>
+    <div class="stack gap10" style="padding:0 16px 20px">
+      ${answers.length ? answers.map((a) => answerBlock(qq, a, owner)).join('') : owner ? `<div class="wait-card"><div class="row gap10"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><b style="color:var(--blue);font-weight:600">Je vraag staat op de weg!</b></div><p style="font-size:14px;line-height:1.45">We tippen collega’s die hier verstand van hebben. Je krijgt een melding zodra iemand antwoordt.</p>${experts.length ? `<div class="row gap8"><span class="av-stack">${experts.map((e) => av(e.id, 30, false)).join('')}</span><span class="muted" style="font-size:13px">${experts.map((e) => first(e.name)).join(', ')} ${experts.length === 1 ? 'krijgt' : 'krijgen'} een tip</span></div>` : ''}</div>` : `<div class="empty" style="padding:24px 10px">${ic('warn', 'lg')}<span>Nog geen antwoord. Deze vraag staat op de vluchtstrook.</span></div>`}
+    </div>
+  </main>
+  <form class="composer" data-act="answer" data-q="${qq.id}">
+    <span class="hint">${ic('wheel', 'sm')} Elk antwoord levert een onderdeel op voor je auto</span>
+    ${pendingRef ? `<div class="ref-card" style="padding:8px 10px">${ic('link', 'sm')}<span class="t grow" style="font-size:13px">${esc(q(pendingRef).title)}</span>${plate(pendingRef)}<button type="button" class="icon-btn" style="width:32px;height:32px;background:transparent" data-act="clearRef" aria-label="Verwijzing weghalen">${ic('close', 'sm')}</button></div>` : ''}
+    <div class="row1">
+      <button type="button" class="icon-btn" data-act="refSheet" data-q="${qq.id}" aria-label="Verwijs naar een eerdere vraag" title="Verwijs naar een eerdere vraag">${ic('link')}</button>
+      <label class="vh" for="ans">${disc ? 'Reageer' : 'Antwoord'}</label>
+      <input class="input grow" id="ans" name="t" autocomplete="off" placeholder="${disc ? 'Deel je ervaring…' : owner ? 'Reageer of geef extra info…' : 'Weet jij het? Schrijf een antwoord'}">
+      <button class="send" aria-label="Verstuur">${ic('send')}</button>
+    </div>
+  </form>`;
+}
+const VIEWED = new Set();
+
+let draft = null;
+function vNew() {
+  if (!draft) draft = { type: 'vraag', domain: '', title: '', body: '', anon: false };
+  const disc = draft.type === 'discussie';
+  return `${subHeader('Stel je vraag', { back: '#/', close: true, right: `<a class="btn ghost sm" href="#/concepten" style="padding:0 8px">${ic('doc', 'sm')}${S.drafts.length}</a>` })}
+  <main class="main screen-in" id="main"><div class="pad stack gap16">
+    <div class="badge-card" style="align-self:flex-start;max-width:300px"><span class="k">Goed om te weten</span><span class="b" style="font-size:16px">Domme vragen bestaan niet. Iedereen wordt slimmer van jouw vraag.</span></div>
+    <div class="seg" role="group" aria-label="Soort bericht">
+      <button type="button" data-act="type" data-v="vraag" aria-pressed="${!disc}">${ic('chat', 'sm')}Vraag</button>
+      <button type="button" data-act="type" data-v="discussie" aria-pressed="${disc}">${ic('route', 'sm')}Discussie</button>
+    </div>
+    <div aria-live="polite">${sign(`Voorbeeld · <span data-live="dom">${esc(draft.domain || 'kies een onderwerp')}</span>`, esc(draft.title) || 'Je vraag verschijnt hier op het bord', { cls: 'sm' + (disc ? ' disc' : ''), live: true })}</div>
+    <div class="field"><label class="lbl" for="title">${disc ? 'Waar wil je over praten?' : 'Je vraag in één zin'}</label>
+      <input class="input" id="title" value="${esc(draft.title)}" maxlength="110" autocomplete="off" placeholder="${disc ? 'Bijv. Hoe houden jullie de mail bij?' : 'Bijv. Waar vraag ik een parkeerplek aan?'}"></div>
+    <div id="dup"></div>
+    <fieldset style="border:0;margin:0;padding:0"><legend class="lbl" style="font-size:15px;font-weight:600;color:var(--blue);padding:0;margin-bottom:8px">Over welk onderwerp gaat het?</legend>
+      <div class="chips">${DOMAINS.map((d) => `<button type="button" class="chip" data-act="domain" data-v="${d}" aria-pressed="${draft.domain === d}">${d}</button>`).join('')}</div></fieldset>
+    <div class="field"><label class="lbl" for="body">Toelichting <small>optioneel</small></label>
+      <textarea class="textarea" id="body" rows="3" placeholder="Wat heb je al geprobeerd?">${esc(draft.body)}</textarea></div>
+    <div style="height:8px"></div>
+  </div></main>
+  <div class="composer" style="flex-direction:row;padding-top:14px;padding-bottom:22px;gap:10px">
+    <button class="btn outline grow" data-act="saveDraft">Bewaar als concept</button>
+    <button class="btn primary grow" data-act="post" id="postBtn">${disc ? 'Start discussie' : 'Plaats vraag'}</button>
+  </div>`;
+}
+function renderDup() {
+  const box = $('#dup'); if (!box) return;
+  if (draft.type !== 'vraag' || draft.title.trim().length < 6) { box.innerHTML = ''; return; }
+  const m = similar(draft.title)[0];
+  if (!m || m.score < 1) { box.innerHTML = ''; return; }
+  const x = m.x;
+  box.innerHTML = `<a class="ref-card" href="#/vraag/${x.id}">${ic('info')}<span class="stack gap4 grow"><span class="kicker" style="color:var(--orange-text)">${x.status === 'opgelost' ? 'Lijkt al beantwoord' : 'Lijkt al gesteld'}</span><span class="t">${esc(x.title)}</span></span>${plate(x.id)}</a>`;
+}
+
+let archFilter = 'Alles', archQuery = '';
+function vArchive() {
+  const solved = S.questions.filter((x) => x.status === 'opgelost' && x.type === 'vraag');
+  return `${header()}<main class="main screen-in" id="main">
+  <section class="pad stack gap12" style="padding-bottom:12px">
+    <div><h1 class="h-page">Archief</h1><p class="lead">${(1284 + solved.length - 7).toLocaleString('nl-NL')} beantwoorde vragen. Misschien staat die van jou er al tussen.</p></div>
+    <div class="search">${ic('search')}<label class="vh" for="aq">Zoek in archief</label><input class="input" id="aq" type="search" value="${esc(archQuery)}" placeholder="Zoek op trefwoord of VRAAG-nummer" autocomplete="off"></div>
+    <div class="chips scroll" role="group" aria-label="Filter op onderwerp">${['Alles', ...DOMAINS.filter((d) => d !== 'Algemeen')].map((d) => `<button class="chip" data-act="arch" data-v="${d}" aria-pressed="${archFilter === d}">${d}</button>`).join('')}</div>
+  </section>
+  <div class="stack gap10" id="archList" style="padding:0 16px 24px">${archList()}</div>
+  </main>${tabs('archief')}`;
+}
+function archList() {
+  const qs = archQuery.trim().toLowerCase();
+  const num = qs.replace(/[^0-9]/g, '');
+  const list = S.questions.filter((x) => x.status === 'opgelost' && x.type === 'vraag')
+    .filter((x) => archFilter === 'Alles' || x.domain === archFilter)
+    .filter((x) => !qs || (num && String(x.id).includes(num)) || words(qs).every((w) => words(x.title + ' ' + x.domain).some((v) => v.startsWith(w.slice(0, 5)))))
+    .sort((a, b) => a.hours - b.hours);
+  if (!list.length) return `<div class="empty">${ic('search', 'lg')}<span>Niets gevonden. Stel je vraag gewoon. Dan staat hij er straks wél tussen.</span><a class="btn primary sm" href="#/nieuw">Stel je vraag</a></div>`;
+  return list.map((x) => { const b = x.answers.find((a) => a.best) || x.answers[0]; return `<a class="card" href="#/vraag/${x.id}"><span class="row" style="justify-content:space-between"><span class="qcard-k">${esc(x.domain)}</span>${plate(x.id)}</span><span class="t">${esc(x.title)}</span><span class="meta">${ic('check', 'sm')}<span>Opgelost${b ? ' door ' + esc(first(user(b.author).name)) : ''} · ${x.answers.length} ${x.answers.length === 1 ? 'antwoord' : 'antwoorden'}</span></span></a>`; }).join('');
+}
+
+const UPD_ICON = {
+  nieuw: `<svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="6" fill="#003d86"/><rect x="5" y="5" width="34" height="34" rx="4" fill="none" stroke="#fff" stroke-width="2"/><path d="M22 14v1M22 19v12" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>`,
+  onderhoud: `<svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><path d="M22 3l20 36H2z" fill="#fff" stroke="#c8102e" stroke-width="4" stroke-linejoin="round"/><circle cx="20" cy="18" r="2.4" fill="#0b2347"/><path d="M19 22l-4 9M19 22l5 4 1 5M18 25l-4-2" stroke="#0b2347" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 33h8l-3-6z" fill="#0b2347"/></svg>`,
+  opgelost: `<svg viewBox="0 0 44 44" width="44" height="44" aria-hidden="true"><circle cx="22" cy="22" r="20" fill="#1d8a4e"/><path d="M13 22l6 6 12-13" stroke="#fff" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+let updFilter = 'Alles';
+function vUpdates() {
+  const list = S.updates.filter((u) => updFilter === 'Alles' || u.type === updFilter.toLowerCase());
+  return `${header()}<main class="main screen-in" id="main">
+  <section class="pad stack gap12">
+    <div><span class="kicker" style="color:var(--link)">Verkeersinformatie voor je werk</span><h1 class="h-page" style="margin-top:4px">Updates</h1><p class="lead">Nieuwe systemen, onderhoud en opgeloste storingen binnen de ANWB.</p></div>
+    <div class="ticker" aria-hidden="true">${ic('warn', 'sm')}<span style="overflow:hidden;flex:1"><span class="run">Za 07:00–09:00 VPN-onderhoud &nbsp;•&nbsp; Parkeergarage niveau −2 dicht t/m vrijdag &nbsp;•&nbsp; Personeelsportaal vernieuwd</span></span></div>
+    <div class="chips scroll" role="group" aria-label="Filter updates">${['Alles', 'Nieuw', 'Onderhoud', 'Opgelost'].map((d) => `<button class="chip" data-act="upd" data-v="${d}" aria-pressed="${updFilter === d}">${d}</button>`).join('')}</div>
+    <div class="stack gap10">${list.map((u) => `<div class="upd"><span class="sg">${UPD_ICON[u.type]}</span><div class="grow"><span class="t">${esc(u.title)}</span><p>${esc(u.text)}</p><div class="m"><span class="tag ${u.type === 'nieuw' ? '' : u.type === 'onderhoud' ? 'orange' : 'green'}">${u.type}</span><span>${esc(u.domain)} · ${esc(u.when)}</span>${u.q ? `<a href="#/vraag/${u.q}" style="margin-left:auto;font-weight:600">Vraag erover →</a>` : ''}</div></div></div>`).join('')}</div>
+  </section></main>${tabs('updates')}`;
+}
+
+function vGarage() {
+  const n = S.me.answers;
+  const lvl = levelFor(n);
+  const nxt = PARTS[lvl];
+  return `${header()}<main class="main screen-in" id="main">
+  <section class="garage-hero stack gap6">
+    <span class="kicker" style="color:var(--yellow);font-size:12px">${n} antwoorden gegeven · ${S.me.best}× beste</span>
+    <h1 class="h-page" style="color:#fff">Jouw garage</h1>
+    <p>Elk antwoord levert een onderdeel op. Help genoeg collega’s en je rijdt rond in je eigen Wegenwacht-auto.</p>
+    <div style="margin-top:4px">${carSVG(lvl)}</div>
+    <div class="next-badge"><span class="kicker" style="opacity:.8">${nxt ? 'Volgend onderdeel' : 'Gefeliciteerd'}</span><span style="display:block;font-size:15px;font-weight:600;line-height:1.25">${nxt ? `${nxt.name}: nog ${nxt.need - n} ${nxt.need - n === 1 ? 'antwoord' : 'antwoorden'}` : 'Auto compleet. Gaat-ie hard!'}</span></div>
+  </section>
+  <section class="pad" style="padding-top:36px">
+    <h2 style="font-size:19px;margin-bottom:12px">Van chassis tot Wegenwacht-auto</h2>
+    ${PARTS.map((p, i) => { const k = i + 1; const done = k <= lvl; const next = k === lvl + 1; return `<div class="tl${!done && !next ? ' locked' : ''}"><div class="dotcol"><span class="dot${done ? ' done' : next ? ' next' : ''}">${done ? ic('check', 'sm') : k}</span>${k < 4 ? `<span class="ln${k < lvl ? ' done' : ''}"></span>` : ''}</div><div class="tx"><span class="row" style="justify-content:space-between;gap:8px"><b>${p.name}</b><span class="tag ${done ? 'green' : next ? 'yellow' : 'grey'}">${done ? 'Behaald' : next ? `${n} / ${p.need}` : 'Op slot'}</span></span><span>${p.sub}</span>${next ? `<div class="bar" style="margin-top:6px"><i style="width:${Math.min(100, Math.round(n / p.need * 100))}%"></i></div>` : ''}</div></div>`; }).join('')}
+    <a class="btn yellow block" href="#/" data-act="toParked" style="margin-top:8px">${ic('warn', 'sm')}Help een vraag op de vluchtstrook</a>
+  </section></main>${tabs('garage')}`;
+}
+
+function vProfile(id) {
+  const me = id === 'me';
+  const u = user(id);
+  if (!u || (!me && !S.users[id])) return `${subHeader('Profiel')}<main class="main"><div class="empty">Profiel niet gevonden.</div></main>`;
+  const answered = S.questions.filter((x) => x.answers.some((a) => a.author === u.id));
+  const asked = S.questions.filter((x) => x.author === u.id && !x.anon);
+  const lvl = levelFor(u.answers || 0);
+  return `${subHeader(me ? 'Mijn profiel' : 'Profiel')}
+  <main class="main screen-in" id="main">
+    <section class="prof-hero">
+      <div class="row gap14">${av(u.id, 72, false)}<div class="stack gap4"><h1 style="font-size:24px">${esc(u.name)}</h1><span style="font-size:14px">${esc(u.role)}</span><span class="muted" style="font-size:13px">${esc(u.dept)} · ${esc(u.team || '')}</span></div></div>
+      ${u.expertise && u.expertise.length ? `<div class="stack gap6"><span class="kicker" style="color:var(--muted)">Weet veel over</span><div class="chips">${u.expertise.map((e) => `<span class="tag">${esc(e)}</span>`).join('')}</div></div>` : me ? '<span class="muted" style="font-size:14px">Beantwoord vragen, dan vullen we automatisch aan waar je goed in bent.</span>' : ''}
+    </section>
+    <section class="pad stack gap16">
+      <div class="stats"><div class="stat"><b>${u.answers || 0}</b><span>antwoorden</span></div><div class="stat"><b>${u.best || 0}</b><span>× beste</span></div><div class="stat"><b>${['Chassis', 'Wielen', 'Lampen', 'Auto'][lvl - 1]}</b><span>in de garage</span></div></div>
+      ${me ? `<div class="menu">
+        <a href="#/concepten">${ic('doc')}Mijn concepten<span class="cnt">${S.drafts.length}</span></a>
+        <a href="#/garage">${ic('car')}Mijn garage${ic('arrow', 'sm chev')}</a>
+        <a href="#/meldingen">${ic('wheel')}Meldingen<span class="cnt">${unread() ? unread() + ' nieuw' : ''}</span></a>
+        <button data-act="tour">${ic('route')}Rondleiding opnieuw bekijken</button>
+        <button data-act="reset">${ic('refresh')}Demo opnieuw beginnen</button>
+      </div>` : `<a class="btn primary block" href="#/nieuw" data-act="askTo" data-v="${esc(u.dept)}">${ic('chat', 'sm')}Stel ${esc(first(u.name))} een vraag over ${esc(u.dept)}</a>`}
+      ${answered.length ? `<div class="stack gap10"><h2 style="font-size:18px">${me ? 'Jouw antwoorden' : 'Heeft geholpen bij'}</h2>${answered.slice(0, 4).map((x) => `<a class="card" href="#/vraag/${x.id}"><span class="row" style="justify-content:space-between"><span class="qcard-k">${esc(x.domain)}</span>${x.answers.find((a) => a.author === u.id && a.best) ? '<span class="tag green">Beste antwoord</span>' : ''}</span><span class="t" style="font-size:15px">${esc(x.title)}</span></a>`).join('')}</div>` : ''}
+      ${asked.length ? `<div class="stack gap10"><h2 style="font-size:18px">${me ? 'Jouw vragen' : 'Vroeg zelf'}</h2>${asked.slice(0, 3).map((x) => `<a class="card" href="#/vraag/${x.id}"><span class="qcard-k">${esc(x.domain)}</span><span class="t" style="font-size:15px">${esc(x.title)}</span></a>`).join('')}</div>` : ''}
+    </section></main>`;
+}
+
+function vDrafts() {
+  return `${subHeader('Concepten', { back: '#/profiel/me' })}
+  <main class="main screen-in" id="main"><section class="pad stack gap12">
+    <p class="lead" style="margin:0">Werk je vraag rustig uit voordat je hem plaatst. Handig voor die paar minuten tussen twee overleggen.</p>
+    ${S.drafts.length ? S.drafts.map((d) => { const steps = [!!d.title, !!d.domain, !!d.body]; const pct = Math.round(steps.filter(Boolean).length / 3 * 100); return `<div class="quick${pct === 100 ? ' blue' : ''}"><span class="row" style="justify-content:space-between"><span class="tag ${pct === 100 ? 'white' : 'white'}">${esc(d.domain || 'Geen onderwerp')}</span><span style="font-size:12px;${pct === 100 ? 'color:#c9d6ea' : 'color:var(--muted)'}">${esc(d.when)}</span></span><span class="t">${esc(d.title || 'Naamloze vraag')}</span><span class="row gap6" style="flex-wrap:wrap">${['Vraag', 'Onderwerp', 'Toelichting'].map((s, i) => `<span class="tag ${steps[i] ? (pct === 100 ? 'yellow' : '') : 'grey'}" style="${steps[i] && pct < 100 ? 'background:var(--blue);color:#fff' : ''}">${steps[i] ? '✓ ' : ''}${s}</span>`).join('')}</span><span class="row gap14"><span class="bar grow" style="${pct === 100 ? 'background:rgb(255 255 255 / 20%)' : ''}"><i style="width:${pct}%;${pct === 100 ? 'background:var(--yellow)' : ''}"></i></span><button class="btn ${pct === 100 ? 'yellow' : 'outline'} sm" data-act="openDraft" data-id="${d.id}">${pct === 100 ? 'Afronden' : 'Verder'} ${ic('arrow', 'sm')}</button></span></div>`; }).join('') : `<div class="empty">${ic('doc', 'lg')}Nog geen concepten.</div>`}
+    <a class="btn outline block" href="#/nieuw" data-act="newDraft" style="border-style:dashed">${ic('plus', 'sm')}Nieuw concept</a>
+  </section></main>`;
+}
+
+function vNotifs() {
+  const list = S.notifs;
+  const out = `${subHeader('Meldingen', { right: list.some((n) => !n.read) ? '<button class="btn ghost sm" data-act="readAll" style="padding:0 8px">Alles gelezen</button>' : '<span style="width:44px"></span>' })}
+  <main class="main screen-in" id="main">
+    ${list.length ? list.map((n) => `<a class="nrow${n.read ? '' : ' unread'}" href="#/vraag/${n.q}" data-act="readN" data-id="${n.id}">${av(n.who, 40, false)}<div class="grow"><p>${esc(n.text)}</p><div class="when">${esc(n.when)}</div></div>${n.read ? '' : '<span style="width:10px;height:10px;border-radius:50%;background:var(--red);flex:none;margin-top:6px"></span>'}</a>`).join('') : `<div class="empty">${ic('wheel', 'lg')}Geen meldingen. Rustig op de weg!</div>`}
+  </main>`;
+  return out;
+}
+
+/* onboarding */
+let onbName = '', onbDept = '', onbRole = '';
+function vWelcome() {
+  return `<div class="onb screen-in">
+    <div class="onb-hero">
+      <div class="row gap12"><img src="${LOGO}" alt="ANWB" style="width:70px;background:#fff;border-radius:6px;padding:6px 8px"><span style="font-weight:600;font-size:18px;color:#fff;padding-left:12px;border-left:2px solid rgb(255 255 255 / 30%)">Wegwijs</span></div>
+      <p class="kicker k" style="margin-top:28px">Welkom bij de ANWB</p>
+      <h1 style="margin-top:8px">Vast? Vraag het<br>een collega.</h1>
+      <div class="onb-road"><div class="onb-car">${carSVG(4, 220).replace('<path d="M0 150h320" stroke="#fff" stroke-opacity=".35" stroke-width="2" stroke-dasharray="14 10"/>', '')}</div></div>
+    </div>
+    <div class="onb-body">
+      <div class="point"><span class="ic">${ic('search')}</span><div><b>Zoek eerst even</b><span>Grote kans dat een collega het al eens vroeg.</span></div></div>
+      <div class="point"><span class="ic">${ic('chat')}</span><div><b>Stel je vraag aan iedereen</b><span>Hij komt bij wie het weet, niet bij de verkeerde persoon.</span></div></div>
+      <div class="point"><span class="ic">${ic('car')}</span><div><b>Help terug, bouw je auto</b><span>Elk antwoord levert een onderdeel op.</span></div></div>
+    </div>
+    <div class="onb-foot"><a class="btn yellow block" href="#/welkom/wie">Aan de slag ${ic('arrow', 'sm')}</a><button class="btn ghost block" data-act="skipOnb">Overslaan</button></div>
+  </div>`;
+}
+function vWho() {
+  return `<div class="onb screen-in">
+    <header class="hdr-sub"><a class="icon-btn" href="#/welkom" aria-label="Terug">${ic('back')}</a><div class="steps" style="width:120px"><i class="on"></i><i class="on"></i><i></i></div><span style="width:44px"></span></header>
+    <div class="onb-body">
+      <div><h1 class="h-page">Wie ben je?</h1><p class="lead">Dan weten collega’s wie ze helpen. En wij welke vragen jij misschien kunt beantwoorden.</p></div>
+      <div class="field"><label class="lbl" for="oname">Je voornaam</label><input class="input" id="oname" value="${esc(onbName || S.me.name)}" autocomplete="given-name"></div>
+      <div class="field"><label class="lbl" for="orole">Je functie</label><input class="input" id="orole" value="${esc(onbRole)}" placeholder="Bijv. Medewerker ledenservice"></div>
+      <fieldset style="border:0;margin:0;padding:0"><legend style="font-size:15px;font-weight:600;color:var(--blue);padding:0;margin-bottom:8px">Bij welke afdeling werk je?</legend>
+        <div class="chips">${DOMAINS.filter((d) => d !== 'Algemeen').map((d) => `<button type="button" class="chip" data-act="odept" data-v="${d}" aria-pressed="${(onbDept || S.me.dept) === d}">${d}</button>`).join('')}</div></fieldset>
+    </div>
+    <div class="onb-foot"><button class="btn primary block" data-act="whoNext">Verder ${ic('arrow', 'sm')}</button></div>
+  </div>`;
+}
+function vIntro() {
+  const txt = `Hoi! Ik ben ${S.me.name}, net begonnen als ${S.me.role.toLowerCase()} bij ${S.me.dept}. Ik ga vast veel vragen stellen, dus alvast bedankt!`;
+  return `<div class="onb screen-in">
+    <header class="hdr-sub"><a class="icon-btn" href="#/" aria-label="Sluiten" data-act="introLater">${ic('close')}</a><div class="steps" style="width:120px"><i class="on"></i><i class="on"></i><i class="on"></i></div><span style="width:44px"></span></header>
+    <div class="onb-body">
+      <div class="badge-card" style="align-self:flex-start;max-width:290px"><span class="k">Laatste stap</span><span class="b" style="font-size:17px;font-weight:600">Stel jezelf even voor aan je nieuwe collega’s</span></div>
+      <p class="lead" style="margin:0">Je voorstelling komt op Home bij ‘Nieuwe collega’s’. Collega’s kunnen je dan meteen hoi zeggen.</p>
+      <div class="intro" style="width:auto;background:#fff;border:1.5px solid var(--line)"><div class="row gap10">${av('me', 40, false)}<div class="stack"><b style="color:var(--blue);font-weight:600;font-size:15px">${esc(S.me.name)}</b><span class="muted" style="font-size:12px">${esc(S.me.role)} · ${esc(S.me.dept)}</span></div></div>
+        <label class="vh" for="introTxt">Jouw voorstelling</label><textarea class="textarea" id="introTxt" rows="4">${esc(txt)}</textarea></div>
+    </div>
+    <div class="onb-foot"><button class="btn primary block" data-act="postIntro">${ic('hand', 'sm')}Zeg hoi tegen iedereen</button><button class="btn ghost block" data-act="introLater">Later</button></div>
+  </div>`;
+}
+
+/* tutorial coach marks */
+const COACH = [
+  { el: '#searchWrap', k: 'Stap 1 van 3', t: 'Zoek eerst of je vraag al gesteld is', p: 'Typ een paar woorden. Je ziet meteen of een collega het antwoord al gaf.' },
+  { el: '#fabTab .fab', k: 'Stap 2 van 3', t: 'Stel hier je vraag', p: 'Iedereen kan hem zien. Zo komt hij bij wie het antwoord weet. Domme vragen bestaan niet.' },
+  { el: '.tabs .tab:last-child', k: 'Stap 3 van 3', t: 'Help terug en bouw je auto', p: 'Elk antwoord levert een onderdeel op. Van chassis tot Wegenwacht-auto!' }
+];
+function coach() { return '<div id="coach"></div>'; }
+function placeCoach() {
+  const host = $('#coach'); if (!host || !S.tutorial) return;
+  const step = COACH[S.tutorial - 1]; const target = $(step.el); const app = $('#app');
+  if (!target) return;
+  const r = target.getBoundingClientRect(), a = app.getBoundingClientRect();
+  const pad = step.el.includes('fab') ? 6 : 8;
+  const top = r.top - a.top - pad, left = r.left - a.left - pad, w = r.width + pad * 2, h = r.height + pad * 2;
+  const below = top < a.height / 2;
+  const tipPos = below ? `top:${top + h + 18}px` : `bottom:${a.height - top + 18}px`;
+  host.innerHTML = `<div class="coach-ring" style="top:${top}px;left:${left}px;width:${w}px;height:${h}px;${step.el.includes('fab') ? 'border-radius:50%' : ''}"></div>
+    <button class="coach-skip" data-act="coachSkip">Overslaan</button>
+    <div class="coach-tip" role="dialog" aria-label="Rondleiding" style="${tipPos}"><span class="k">${step.k}</span><div class="t">${step.t}</div><p>${step.p}</p>
+    <div class="nav"><span class="pips">${COACH.map((_, i) => `<i class="${i === S.tutorial - 1 ? 'on' : ''}"></i>`).join('')}</span><button class="btn primary sm" data-act="coachNext">${S.tutorial === COACH.length ? 'Klaar' : 'Volgende'} ${ic('arrow', 'sm')}</button></div></div>`;
+}
+
+/* sheets / toasts / notifications */
+function toast(msg, icon = 'check') {
+  const app = $('#app'); const old = $('.toast', app); if (old) old.remove();
+  const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status');
+  el.innerHTML = `<span class="ic">${ic(icon)}</span><span>${msg}</span>`;
+  app.appendChild(el); setTimeout(() => el.remove(), 3300);
+}
+function closeOverlays() { document.querySelectorAll('#app .scrim, #app .sheet, #app .notif-wrap').forEach((e) => e.remove()); }
+function refSheet(qid) {
+  closeOverlays();
+  const app = $('#app');
+  const solved = S.questions.filter((x) => x.status === 'opgelost' && x.id !== Number(qid) && x.type === 'vraag');
+  const sugg = similar(q(qid).title, Number(qid)).map((r) => r.x.id);
+  solved.sort((a, b) => (sugg.includes(b.id) ? 1 : 0) - (sugg.includes(a.id) ? 1 : 0));
+  app.insertAdjacentHTML('beforeend', `<div class="scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-label="Verwijs naar een eerdere vraag"><span class="grab"></span>
+    <div class="sh"><div class="stack"><h2 style="font-size:19px">Verwijs naar een eerdere vraag</h2><span class="muted" style="font-size:13px">Staat het antwoord er al? Stuur je collega de goede kant op.</span></div><button class="icon-btn" data-act="closeSheet" aria-label="Sluiten">${ic('close')}</button></div>
+    <div class="sb">${solved.map((x) => `<button class="card" style="text-align:left;cursor:pointer" data-act="pickRef" data-id="${x.id}"><span class="row" style="justify-content:space-between"><span class="qcard-k">${esc(x.domain)}${sugg.includes(x.id) ? ' · lijkt erop' : ''}</span>${plate(x.id)}</span><span class="t" style="font-size:15px">${esc(x.title)}</span></button>`).join('')}</div></div>`);
+}
+function resetSheet() {
+  closeOverlays();
+  $('#app').insertAdjacentHTML('beforeend', `<div class="scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-label="Demo opnieuw beginnen"><span class="grab"></span>
+    <div class="sb" style="padding-top:12px;gap:14px"><h2 style="font-size:20px">Demo opnieuw beginnen?</h2><p class="muted" style="font-size:15px;line-height:1.45">Je vragen, antwoorden, concepten en je voorstelling worden gewist. Je begint weer bij het welkomstscherm.</p>
+    <div class="row gap10"><button class="btn outline grow" data-act="closeSheet">Annuleren</button><button class="btn primary grow" data-act="doReset">Opnieuw beginnen</button></div></div></div>`);
+}
+function showNotif(n) {
+  closeOverlays();
+  const app = $('#app'); const qq = q(n.q); const a = qq && qq.answers[qq.answers.length - 1];
+  app.insertAdjacentHTML('beforeend', `<div class="scrim" data-act="closeNotif"></div><div class="notif-wrap" role="dialog" aria-label="Nieuw antwoord">
+    <div class="notif-card"><span class="kicker" style="color:var(--link)">Nieuw antwoord · zojuist</span><h2>${esc(first(user(n.who).name))} heeft gereageerd op je vraag</h2>
+      <div class="notif-quote"><b>${esc(qq ? qq.title : '')}</b><span>“${esc(a ? (a.text.length > 80 ? a.text.slice(0, 78) + '…' : a.text) : '')}”</span></div>
+      <span class="tag yellow" style="align-self:flex-start;font-size:12px;padding:7px 11px;transform:rotate(-1deg)">${ic('wheel', 'sm')}${esc(first(user(n.who).name))} verdient een onderdeel voor de auto</span>
+      <div class="row gap10" style="margin-top:4px"><button class="btn outline grow" data-act="closeNotif">Later</button><a class="btn primary" style="flex:1.4" href="#/vraag/${n.q}" data-act="openNotif" data-id="${n.id}">Bekijk antwoord</a></div></div>
+    <div class="tire">${TIRE}</div>
+    <button class="replay" data-act="replayNotif" data-id="${n.id}">${ic('refresh', 'sm')}Nog een keer laten rollen</button></div>`);
+}
+
+/* ------------------------------------------------------------------ router */
+let CUR = (location.hash || '').startsWith('#/') ? location.hash.slice(2) : '';
+const HIST = [];
+function route() {
+  const [p, id] = CUR.split('/');
+  return { p: p || 'home', id, full: CUR };
+}
+function go(path, opts = {}) {
+  path = String(path || '').replace(/^#?\/?/, '');
+  if (!opts.replace && path !== CUR) HIST.push(CUR);
+  if (HIST.length > 40) HIST.shift();
+  CUR = path;
+  closeOverlays();
+  render();
+}
+function back(fallback) { if (HIST.length) { CUR = HIST.pop(); closeOverlays(); render(); } else go(fallback || '', { replace: true }); }
+let lastRoute = '';
+function render() {
+  const r = route();
+  if (!S.onboarded && r.p !== 'welkom') { CUR = 'welkom'; return render(); }
+  const app = $('#app');
+  let html;
+  switch (r.p) {
+    case 'home': html = vHome(); break;
+    case 'vraag': html = vQuestion(r.id); break;
+    case 'nieuw': html = vNew(); break;
+    case 'archief': html = vArchive(); break;
+    case 'updates': html = vUpdates(); break;
+    case 'garage': html = vGarage(); break;
+    case 'profiel': html = vProfile(r.id || 'me'); break;
+    case 'concepten': html = vDrafts(); break;
+    case 'meldingen': html = vNotifs(); break;
+    case 'welkom': html = r.id === 'wie' ? vWho() : r.id === 'voorstellen' ? vIntro() : vWelcome(); break;
+    default: html = vHome();
+  }
+  const sameRoute = lastRoute === r.full;
+  const main = $('#main');
+  const scroll = sameRoute && main ? main.scrollTop : 0;
+  app.innerHTML = html;
+  if (sameRoute) { const m = $('#main'); if (m) { m.scrollTop = scroll; m.classList.remove('screen-in'); } }
+  lastRoute = r.full;
+  afterRender(r);
+}
+function afterRender(r) {
+  if (r.p === 'home') {
+    const inp = $('#q');
+    if (inp) inp.addEventListener('input', () => searchResults(inp.value));
+    requestAnimationFrame(placeCoach);
+  }
+  if (r.p === 'nieuw') {
+    const t = $('#title'), b = $('#body');
+    t.addEventListener('input', () => { draft.title = t.value; const live = $('[data-live="sign"]'); if (live) live.textContent = t.value || 'Je vraag verschijnt hier op het bord'; renderDup(); });
+    b.addEventListener('input', () => { draft.body = b.value; });
+    
+    renderDup();
+  }
+  if (r.p === 'archief') {
+    const a = $('#aq');
+    a.addEventListener('input', () => { archQuery = a.value; $('#archList').innerHTML = archList(); });
+  }
+  if (r.p === 'welkom' && r.id === 'wie') {
+    $('#oname').addEventListener('input', (e) => { onbName = e.target.value; });
+    $('#orole').addEventListener('input', (e) => { onbRole = e.target.value; });
+  }
+}
+function searchResults(v) {
+  const box = $('#results'); if (!box) return;
+  const t = v.trim();
+  if (t.length < 2) { box.innerHTML = ''; return; }
+  const hits = similar(t).slice(0, 3);
+  const direct = S.questions.filter((x) => x.title.toLowerCase().includes(t.toLowerCase()) && !hits.some((h) => h.x.id === x.id)).slice(0, 3 - hits.length);
+  const all = [...hits.map((h) => h.x), ...direct];
+  box.innerHTML = `<div class="results">${all.map((x) => `<a href="#/vraag/${x.id}">${x.status === 'opgelost' ? `<span style="color:var(--green)">${ic('check')}</span>` : `<span style="color:var(--orange)">${ic('clock')}</span>`}<span class="stack gap4 grow"><span class="t">${esc(x.title)}</span><span class="muted" style="font-size:12px">${esc(x.domain)} · ${x.status === 'opgelost' ? 'opgelost' : x.answers.length + ' antwoorden'}</span></span>${plate(x.id)}</a>`).join('')}
+    <a href="#/nieuw" data-act="askSearch" data-v="${esc(t)}"><span style="color:var(--blue)">${ic('plus')}</span><span class="ask grow">Niet gevonden? Stel “${esc(t.length > 30 ? t.slice(0, 28) + '…' : t)}”</span></a></div>`;
+}
+
+/* ------------------------------------------------------------------ actions */
+function ensureDraft() { if (!draft) draft = { type: 'vraag', domain: '', title: '', body: '', anon: false }; }
+function awardAnswer() {
+  const before = levelFor(S.me.answers);
+  S.me.answers++;
+  const after = levelFor(S.me.answers);
+  if (after > before) setTimeout(() => toast(`Nieuw onderdeel: <b>${PARTS[after - 1].name}</b>! Bekijk je garage.`, 'car'), 500);
+  else toast(`Bedankt! Nog ${PARTS[after] ? PARTS[after].need - S.me.answers : 0} antwoorden tot je volgende onderdeel`, 'wheel');
+}
+function simulateAnswer(qid) {
+  setTimeout(() => {
+    const qq = q(qid); if (!qq || qq.answers.some((a) => a.author !== 'me')) return;
+    const who = EXPERT[qq.domain] || 'kees';
+    const a = { id: 'x' + Date.now(), author: who, text: AUTO_ANSWER[qq.domain] || AUTO_ANSWER.Algemeen, votes: 0, replies: [], fresh: true };
+    if (qq.type === 'vraag') { const ref = similar(qq.title, qq.id).find((r) => r.x.status === 'opgelost' && r.score >= 2); if (ref) { a.ref = ref.x.id; a.text = 'Volgens mij is dit eerder gevraagd, kijk even hier:'; } }
+    qq.answers.push(a);
+    const n = { id: 'n' + Date.now(), q: qq.id, who, text: `${first(user(who).name)} ${qq.type === 'discussie' ? 'reageerde op je discussie' : 'beantwoordde je vraag'} “${qq.title}”`, when: 'zojuist', read: false };
+    S.notifs.unshift(n); save();
+    const r = route();
+    if (r.p === 'vraag' && Number(r.id) === qq.id) render();
+    else if (['home', 'archief', 'updates', 'garage'].includes(r.p)) { const btn = $('#wheelBtn'); if (btn) { const tmp = document.createElement('div'); tmp.innerHTML = header(); $('.hdr').replaceWith(tmp.firstElementChild); } }
+    showNotif(n);
+  }, 5200);
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act]');
+  if (t) handleAct(e, t);
+  if (e.defaultPrevented) return;
+  const a = e.target.closest('a[href^="#/"]');
+  if (a) { e.preventDefault(); if (a.hasAttribute('data-back')) back(a.getAttribute('href').slice(2)); else go(a.getAttribute('href').slice(2)); }
+});
+function handleAct(e, t) {
+  const act = t.dataset.act, id = t.dataset.id, v = t.dataset.v;
+  switch (act) {
+    case 'wave': S.waved[id] = !S.waved[id]; save(); t.setAttribute('aria-pressed', S.waved[id]); { const it = S.intros.find((i) => i.id === id); t.innerHTML = `${ic('hand', 'sm')} ${S.waved[id] ? 'Hoi gezegd' : 'Zeg hoi'} · ${it.waves + (S.waved[id] ? 1 : 0)}`; } break;
+    case 'vote': { const k = t.dataset.q + ':' + t.dataset.a; S.voted[k] = !S.voted[k]; save(); render(); break; }
+    case 'toggleReplies': OPEN_REPLIES.has(t.dataset.a) ? OPEN_REPLIES.delete(t.dataset.a) : OPEN_REPLIES.add(t.dataset.a); render(); if (OPEN_REPLIES.has(t.dataset.a)) setTimeout(() => { const i = $('#r-' + t.dataset.a); if (i) i.focus({ preventScroll: false }); }, 30); break;
+    case 'best': { const qq = q(t.dataset.q); qq.answers.forEach((a) => { a.best = a.id === t.dataset.a; }); qq.status = 'opgelost'; const a = qq.answers.find((x) => x.best); if (S.users[a.author]) { S.users[a.author].best++; } save(); render(); toast(`Opgelost! ${first(user(a.author).name)} krijgt een extra onderdeel. Je vraag staat nu in het archief.`, 'trophy'); break; }
+    case 'status': { const qq = q(t.dataset.q); qq.status = v; save(); render(); toast(v === 'opgelost' ? 'Gemarkeerd als opgelost. Collega’s vinden hem terug in het archief.' : 'Je vraag blijft open staan voor meer antwoorden.', v === 'opgelost' ? 'check' : 'clock'); break; }
+    case 'refSheet': e.preventDefault(); refSheet(t.dataset.q); break;
+    case 'pickRef': pendingRef = Number(id); closeOverlays(); render(); setTimeout(() => { const i = $('#ans'); if (i) i.focus(); }, 30); break;
+    case 'clearRef': pendingRef = null; render(); break;
+    case 'closeSheet': closeOverlays(); break;
+    case 'closeNotif': closeOverlays(); break;
+    case 'replayNotif': { const n = S.notifs.find((x) => x.id === id); if (n) showNotif(n); break; }
+    case 'openNotif': { const n = S.notifs.find((x) => x.id === id); if (n) n.read = true; save(); closeOverlays(); break; }
+    case 'readN': { const n = S.notifs.find((x) => x.id === id); if (n) { n.read = true; save(); } break; }
+    case 'readAll': S.notifs.forEach((n) => { n.read = true; }); save(); render(); break;
+    case 'type': ensureDraft(); draft.type = v; render(); break;
+    case 'domain': ensureDraft(); draft.domain = draft.domain === v ? '' : v; render(); break;
+    case 'saveDraft': {
+      ensureDraft();
+      if (!draft.title.trim()) { toast('Geef je vraag eerst een titel', 'edit'); $('#title').focus(); break; }
+      const d = { id: draft.draftId || 'd' + Date.now(), type: draft.type, domain: draft.domain, title: draft.title.trim(), body: draft.body, when: 'zojuist' };
+      S.drafts = [d, ...S.drafts.filter((x) => x.id !== d.id)]; save(); draft = null; go('concepten'); setTimeout(() => toast('Opgeslagen bij je concepten', 'doc'), 50); break;
+    }
+    case 'post': {
+      ensureDraft();
+      if (draft.title.trim().length < 5) { toast('Schrijf je vraag in één zin (minstens een paar woorden)', 'edit'); $('#title').focus(); break; }
+      if (!draft.domain) { toast('Kies nog even een onderwerp', 'info'); break; }
+      const id2 = S.nextId++;
+      const nq = { id: id2, type: draft.type, domain: draft.domain, title: draft.title.trim().replace(/([^?.!])$/, draft.type === 'vraag' ? '$1?' : '$1'), body: draft.body.trim(), author: 'me', anon: false, ago: 'zojuist', hours: 0, status: 'open', views: 0, answers: [], mine: true };
+      S.questions.unshift(nq);
+      if (draft.draftId) S.drafts = S.drafts.filter((x) => x.id !== draft.draftId);
+      S.me.asked++; save(); draft = null;
+      go('vraag/' + id2);
+      setTimeout(() => toast(nq.type === 'discussie' ? 'Je discussie staat online!' : 'Je vraag staat online. We zoeken iemand die het weet.', 'send'), 60);
+      simulateAnswer(id2); break;
+    }
+    case 'openDraft': { const d = S.drafts.find((x) => x.id === id); draft = { type: d.type || 'vraag', domain: d.domain, title: d.title, body: d.body, anon: false, draftId: d.id }; go('nieuw'); break; }
+    case 'newDraft': draft = null; break;
+    case 'askTo': draft = { type: 'vraag', domain: v, title: '', body: '', anon: false }; break;
+    case 'askSearch': draft = { type: 'vraag', domain: '', title: v.charAt(0).toUpperCase() + v.slice(1), body: '', anon: false }; break;
+    case 'arch': archFilter = v; document.querySelectorAll('[data-act="arch"]').forEach((c) => c.setAttribute('aria-pressed', c.dataset.v === v)); $('#archList').innerHTML = archList(); break;
+    case 'upd': updFilter = v; render(); break;
+    case 'toParked': e.preventDefault(); go(''); setTimeout(() => { const road = $('.road'); if (road) road.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 80); break;
+    case 'tour': S.tutorial = 1; save(); go(''); break;
+    case 'reset': resetSheet(); break;
+    case 'doReset': try { localStorage.removeItem(KEY); } catch (err) {} S = seed(); draft = null; OPEN_REPLIES.clear(); OPEN_REPLIES.add('a1'); HIST.length = 0; go('welkom', { replace: true }); break;
+    case 'skipOnb': S.onboarded = true; S.tutorial = 0; save(); HIST.length = 0; go('', { replace: true }); break;
+    case 'odept': onbDept = v; document.querySelectorAll('[data-act="odept"]').forEach((c) => c.setAttribute('aria-pressed', c.dataset.v === v)); break;
+    case 'whoNext': {
+      const nm = ($('#oname').value || '').trim() || 'Nieuwe collega';
+      S.me.name = nm.charAt(0).toUpperCase() + nm.slice(1);
+      S.me.role = ($('#orole').value || '').trim() || 'Nieuwe collega';
+      S.me.dept = onbDept || S.me.dept;
+      S.me.team = S.me.dept;
+      S.onboarded = true; S.tutorial = 1; save(); HIST.length = 0; go('', { replace: true }); break;
+    }
+    case 'coachNext': if (S.tutorial >= COACH.length) { S.tutorial = 0; save(); go(S.intros.some((i) => i.author === 'me') ? '' : 'welkom/voorstellen'); } else { S.tutorial++; save(); placeCoach(); } break;
+    case 'coachSkip': S.tutorial = 0; save(); render(); break;
+    case 'postIntro': { const txt = ($('#introTxt').value || '').trim(); if (txt) S.intros.unshift({ id: 'i' + Date.now(), author: 'me', text: txt, waves: 0 }); save(); go(''); setTimeout(() => toast('Je staat bij ‘Nieuwe collega’s’. Welkom!', 'hand'), 60);
+      setTimeout(() => { const mine = S.intros.find((i) => i.author === 'me'); if (mine) { mine.waves = 7; save(); if (route().p === 'home') render(); toast('7 collega’s zeiden hoi!', 'hand'); } }, 4200); break; }
+    case 'introLater': S.tutorial = 0; save(); break;
+  }
+}
+document.addEventListener('submit', (e) => {
+  const f = e.target.closest('form[data-act]'); if (!f) return;
+  e.preventDefault();
+  const qq = q(f.dataset.q); const txt = (f.elements.t.value || '').trim();
+  if (f.dataset.act === 'reply') {
+    if (!txt) return;
+    const a = qq.answers.find((x) => x.id === f.dataset.a); a.replies.push({ author: 'me', text: txt }); save(); render(); toast('Reactie geplaatst', 'reply');
+  }
+  if (f.dataset.act === 'answer') {
+    if (!txt && !pendingRef) { toast('Schrijf eerst je antwoord', 'edit'); return; }
+    qq.answers.push({ id: 'm' + Date.now(), author: 'me', text: txt, ref: pendingRef || undefined, votes: 0, replies: [], fresh: true });
+    pendingRef = null; save();
+    const mine = qq.author === 'me';
+    render();
+    const m = $('#main'); if (m) m.scrollTo({ top: m.scrollHeight, behavior: 'smooth' });
+    if (!mine) awardAnswer(); else toast('Toegevoegd aan je vraag', 'reply');
+  }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlays(); });
+window.addEventListener('resize', () => placeCoach());
+
+/* hooks for the prototype capture script */
+window.__wegwijs = { go, toast, placeCoach, get S() { return S; }, set S(v) { S = v; }, seed, render, save, setDraft: (d) => { draft = d; }, showNotif, refSheet, openReplies: OPEN_REPLIES, setRef: (id) => { pendingRef = id; }, searchResults, setArch: (f) => { archFilter = f; } };
+
+render();
+})();
+
+</script>
+</body></html>
